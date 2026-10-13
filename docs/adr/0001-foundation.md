@@ -1,0 +1,23 @@
+# ADR 0001: Phase 0 architecture and approved domain decisions
+
+Accepted 14 October 2026 through explicit user approval. PRD v1.1 applies; the user's following decisions override conflicting PRD background.
+
+- Modular monolith: Next.js/TypeScript web; shared installable Python package for FastAPI and Celery no-op worker; PostgreSQL authoritative; Redis transport. npm workspaces and uv. No remote Git, AI, AWS, paid services, or Phase 1 endpoints.
+- Multi-role users: role_assignments unique on organization/user/role; roles employee, manager, finance, admin. Explicit employee_managers and department_managers. Relationships constrain same-organization references. Only manager-role users can be assigned managers via role-qualified foreign keys.
+- Versioned approval policy records identify eligible roles and manager scope, never individual hardcoded approvers. Policy execution and delegation are Phase 1. Fixtures are synthetic illustrations, not universal financial policy.
+- Cancellation requires not-final-approved and no irreversible effect. Post-approval expense edits require authorized reversal and complete audit history. Approval and expense processing are distinct permissions; only authorized finance users may process/complete. Small pure predicates exercise these safety decisions without implementing an engine.
+- Completed requests retain history. Reopening is an explicit authorized event or linked follow-up; no silent reset. A nullable same-organization follow-up reference is present, while transition/reversal behavior remains Phase 1.
+- Seed 100 deterministic requests by default, 10 optional smoke fixtures. Seeded users have no password/login capability in Phase 0. Authentication is not implemented; credentials are deferred to Phase 1.
+- Python 3.12 and Node 22 container lines selected for mature ecosystem compatibility. Dependency lockfiles pin resolved packages. Container release tags are explicit; digest pinning is deferred until images can be pulled/verified.
+- SQLAlchemy synchronous Psycopg transactions for foundation; synchronous FastAPI health handlers execute in its thread pool. No async database framework added. Database checks have connection/statement timeouts.
+- Schemas use UUIDs, UTC timestamps, Decimal-ready structured amounts (string in JSON), versioned JSONB request fields, enum/check constraints, composite organization foreign keys, event uniqueness, and initial outbox records. Job/lease/effect ledger arrives in Phase 2, not Redis-only durability.
+- Department represents the initial organizational team boundary; a separate team concept is deferred unless workflows require sub-department groups. Fixture timezone/currency are Asia/Karachi and PKR only; not a production policy decision.
+- Request event update/delete is rejected by a PostgreSQL trigger. Seed writes use conflict-ignore rather than rewriting history. This is an application invariant; database owners can administer migrations and are not an immutable forensic storage system.
+
+Open before Phase 1: session/auth design, confidential admin visibility, low-value approval routing, cancellation/reversal state edges, leave withdrawal/reversal semantics, exact reopening window, historical policy snapshot selection, and manager relationship changes/cycle handling. No endpoint acts on these unresolved rules.
+
+Schema refinement: `approved_at` and `completed_at` are distinct; expense completion requires finance-role processor attribution (`processed_by`, `processing_role`) and a completion timestamp. Object/state authorization remains Phase 1. Role assignments retain grant/revocation timestamps so historical role-qualified references can survive revocation; active eligibility must check revocation in Phase 1. No processing endpoint is present.
+
+Verification-pass update: the user explicitly directed restoration of `openapi-typescript`; the temporary converter has been removed and the approved package/API is declared and wired. Installation, npm lock reconciliation, regeneration and end-to-end drift remain blocked by registry DNS. This is no longer an open choice of generator. Python dependency locking, local Git/commit, image verification and live runtime checks remain blocked; see the current results report.
+
+Worker-probe remediation: Kombu's consumer context establishes a connection clone. The probe now drains that yielded connection, waits for task-event activation acknowledgment, and restores Phase 0's default event mode. Regression tests use a simulated producer/consumer split; live execution is still unverified. Reference: https://docs.celeryq.dev/projects/kombu/en/stable/_modules/kombu/mixins.html

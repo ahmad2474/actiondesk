@@ -1,0 +1,1201 @@
+[
+  {
+    "created_at": "2026-01-01T00:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 1",
+      "location": "Demo office"
+    },
+    "id": "42e60e27-4727-5c21-9518-c6ccc56e43f2",
+    "raw_text": "Synthetic fixture 1: {\"description\": \"Synthetic office maintenance issue 1\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 001",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T01:00:00+00:00",
+    "fields": {
+      "amount": "100001.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 2"
+    },
+    "id": "7b939dac-6114-5930-b046-cc1ef25ba2d2",
+    "raw_text": "Synthetic fixture 2: {\"amount\": \"100001.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 2\"}",
+    "title": "Synthetic expense request 002",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T02:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "15d20ddb-dc41-5ca7-974a-1ca53c53c1ac",
+    "raw_text": "Synthetic fixture 3: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 003",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-01T03:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 4",
+      "location": "Demo office"
+    },
+    "id": "20a3f36c-08cc-5e76-bc61-3993aeab0472",
+    "raw_text": "Synthetic fixture 4: {\"description\": \"Synthetic office maintenance issue 4\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 004",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T04:00:00+00:00",
+    "fields": {
+      "amount": "100004.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 5"
+    },
+    "id": "958c1a08-a00f-5d9e-b5d1-95e78f416cd7",
+    "raw_text": "Synthetic fixture 5: {\"amount\": \"100004.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 5\"}",
+    "title": "Synthetic expense request 005",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T05:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "53705587-7a05-5fda-a0cf-88701d68db04",
+    "raw_text": "Synthetic fixture 6: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 006",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-01T06:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 7",
+      "location": "Demo office"
+    },
+    "id": "d483b70c-8f18-545e-92a9-47e378c5e683",
+    "raw_text": "Synthetic fixture 7: {\"description\": \"Synthetic office maintenance issue 7\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 007",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T07:00:00+00:00",
+    "fields": {
+      "amount": "100007.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 3"
+    },
+    "id": "479e75a0-a217-5de1-aeb3-2487eed8b4ba",
+    "raw_text": "Synthetic fixture 8: {\"amount\": \"100007.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 3\"}",
+    "title": "Synthetic expense request 008",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T08:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "6e254a52-a18d-5ce8-afa7-8d75185b3f03",
+    "raw_text": "Synthetic fixture 9: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 009",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-01T09:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 10",
+      "location": "Demo office"
+    },
+    "id": "9de8473e-fc03-5773-ba4f-a9ec224e55ca",
+    "raw_text": "Synthetic fixture 10: {\"description\": \"Synthetic office maintenance issue 10\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 010",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T10:00:00+00:00",
+    "fields": {
+      "amount": "100010.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 1"
+    },
+    "id": "6430d21f-8a90-5511-a67b-37883b691bd0",
+    "raw_text": "Synthetic fixture 11: {\"amount\": \"100010.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 1\"}",
+    "title": "Synthetic expense request 011",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T11:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "9643724e-4ea7-5587-8e2c-c8369343ac93",
+    "raw_text": "Synthetic fixture 12: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 012",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-01T12:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 13",
+      "location": "Demo office"
+    },
+    "id": "070c769a-5416-5038-ab52-9ffc414611d2",
+    "raw_text": "Synthetic fixture 13: {\"description\": \"Synthetic office maintenance issue 13\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 013",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T13:00:00+00:00",
+    "fields": {
+      "amount": "100013.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 4"
+    },
+    "id": "71cfadc4-fd70-5b5c-9617-e55296d9afef",
+    "raw_text": "Synthetic fixture 14: {\"amount\": \"100013.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 4\"}",
+    "title": "Synthetic expense request 014",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T14:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "92e121e5-dd97-5b28-b130-76fcea3815ba",
+    "raw_text": "Synthetic fixture 15: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 015",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-01T15:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 16",
+      "location": "Demo office"
+    },
+    "id": "a4d26c6f-84b3-5db5-9e1b-5ec58f7e9a39",
+    "raw_text": "Synthetic fixture 16: {\"description\": \"Synthetic office maintenance issue 16\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 016",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T16:00:00+00:00",
+    "fields": {
+      "amount": "100016.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 2"
+    },
+    "id": "35ce1373-57c0-58d1-8f01-faac701b0c23",
+    "raw_text": "Synthetic fixture 17: {\"amount\": \"100016.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 2\"}",
+    "title": "Synthetic expense request 017",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T17:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "5e6a5d07-7064-5b6f-ad0e-28c1ec295fd2",
+    "raw_text": "Synthetic fixture 18: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 018",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-01T18:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 19",
+      "location": "Demo office"
+    },
+    "id": "5c52b14e-e7ca-5dd7-8031-91eecb691974",
+    "raw_text": "Synthetic fixture 19: {\"description\": \"Synthetic office maintenance issue 19\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 019",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T19:00:00+00:00",
+    "fields": {
+      "amount": "100019.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 5"
+    },
+    "id": "4866cbee-198d-51ec-9f07-8b7a9afcb489",
+    "raw_text": "Synthetic fixture 20: {\"amount\": \"100019.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 5\"}",
+    "title": "Synthetic expense request 020",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T20:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "55db073b-f3a8-5f21-8d04-633eabc187ff",
+    "raw_text": "Synthetic fixture 21: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 021",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-01T21:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 22",
+      "location": "Demo office"
+    },
+    "id": "937fa6f0-2e31-5548-8d3b-0de8f2cf885f",
+    "raw_text": "Synthetic fixture 22: {\"description\": \"Synthetic office maintenance issue 22\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 022",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-01T22:00:00+00:00",
+    "fields": {
+      "amount": "100022.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 3"
+    },
+    "id": "11c74c79-73a4-5f49-ba69-d336d46bbddc",
+    "raw_text": "Synthetic fixture 23: {\"amount\": \"100022.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 3\"}",
+    "title": "Synthetic expense request 023",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-01T23:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-09",
+      "leave_type": "annual",
+      "start_date": "2026-01-08"
+    },
+    "id": "988cf2fe-d422-5290-a886-9cf00d825f9f",
+    "raw_text": "Synthetic fixture 24: {\"end_date\": \"2026-01-09\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-08\"}",
+    "title": "Synthetic leave request 024",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T00:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 25",
+      "location": "Demo office"
+    },
+    "id": "4bc9e400-0fd5-5935-b355-1760c1e5511b",
+    "raw_text": "Synthetic fixture 25: {\"description\": \"Synthetic office maintenance issue 25\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 025",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T01:00:00+00:00",
+    "fields": {
+      "amount": "100025.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 1"
+    },
+    "id": "d585209b-c0ee-5f4d-9d22-bf514cfbb981",
+    "raw_text": "Synthetic fixture 26: {\"amount\": \"100025.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 1\"}",
+    "title": "Synthetic expense request 026",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T02:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "c7f12a74-763a-5a49-bde0-668db2eae032",
+    "raw_text": "Synthetic fixture 27: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 027",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T03:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 28",
+      "location": "Demo office"
+    },
+    "id": "f40d3ae6-bfad-5614-89f7-a6edd42924c1",
+    "raw_text": "Synthetic fixture 28: {\"description\": \"Synthetic office maintenance issue 28\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 028",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T04:00:00+00:00",
+    "fields": {
+      "amount": "100028.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 4"
+    },
+    "id": "f0f5db93-70be-536a-af54-f3cb95258b36",
+    "raw_text": "Synthetic fixture 29: {\"amount\": \"100028.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 4\"}",
+    "title": "Synthetic expense request 029",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T05:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "2db0abb4-8d1c-5bc6-b3c5-570db1b4fcd7",
+    "raw_text": "Synthetic fixture 30: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 030",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T06:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 31",
+      "location": "Demo office"
+    },
+    "id": "e3213d4c-ad0e-575b-8599-02a6d8cfddc8",
+    "raw_text": "Synthetic fixture 31: {\"description\": \"Synthetic office maintenance issue 31\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 031",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T07:00:00+00:00",
+    "fields": {
+      "amount": "100031.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 2"
+    },
+    "id": "9d8396d9-5811-5ac6-b12e-669de333061e",
+    "raw_text": "Synthetic fixture 32: {\"amount\": \"100031.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 2\"}",
+    "title": "Synthetic expense request 032",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T08:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "c202243d-a82f-5873-b147-4a59ff982c94",
+    "raw_text": "Synthetic fixture 33: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 033",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T09:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 34",
+      "location": "Demo office"
+    },
+    "id": "46a004d0-7a29-5ac0-bdd8-fa6e5e9bc6f7",
+    "raw_text": "Synthetic fixture 34: {\"description\": \"Synthetic office maintenance issue 34\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 034",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T10:00:00+00:00",
+    "fields": {
+      "amount": "100034.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 5"
+    },
+    "id": "e6189865-0484-5253-b658-3bd86f02c905",
+    "raw_text": "Synthetic fixture 35: {\"amount\": \"100034.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 5\"}",
+    "title": "Synthetic expense request 035",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T11:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "b984d38e-670e-5fca-bbf2-82f98d4033fb",
+    "raw_text": "Synthetic fixture 36: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 036",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T12:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 37",
+      "location": "Demo office"
+    },
+    "id": "743c43d8-e6dc-51e1-b7a8-6dfebbf90bd4",
+    "raw_text": "Synthetic fixture 37: {\"description\": \"Synthetic office maintenance issue 37\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 037",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T13:00:00+00:00",
+    "fields": {
+      "amount": "100037.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 3"
+    },
+    "id": "f4695c4e-5d7b-5cbd-96db-23157338b9d0",
+    "raw_text": "Synthetic fixture 38: {\"amount\": \"100037.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 3\"}",
+    "title": "Synthetic expense request 038",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T14:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "218ee35d-fd20-5a9d-bcf6-a2bc1838955e",
+    "raw_text": "Synthetic fixture 39: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 039",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T15:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 40",
+      "location": "Demo office"
+    },
+    "id": "f95571a3-1396-5e24-a643-07725e7df761",
+    "raw_text": "Synthetic fixture 40: {\"description\": \"Synthetic office maintenance issue 40\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 040",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T16:00:00+00:00",
+    "fields": {
+      "amount": "100040.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 1"
+    },
+    "id": "8b36db8d-55d8-59c5-ae71-ef7b5af5c4e9",
+    "raw_text": "Synthetic fixture 41: {\"amount\": \"100040.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 1\"}",
+    "title": "Synthetic expense request 041",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T17:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "548ca09e-f5da-5bc7-a5aa-b633caf5cd5b",
+    "raw_text": "Synthetic fixture 42: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 042",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T18:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 43",
+      "location": "Demo office"
+    },
+    "id": "36f5edc1-1491-5621-a6eb-f812746a0526",
+    "raw_text": "Synthetic fixture 43: {\"description\": \"Synthetic office maintenance issue 43\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 043",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T19:00:00+00:00",
+    "fields": {
+      "amount": "100043.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 4"
+    },
+    "id": "2544b592-bd6b-5f94-b744-3d0ac984d5b7",
+    "raw_text": "Synthetic fixture 44: {\"amount\": \"100043.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 4\"}",
+    "title": "Synthetic expense request 044",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T20:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "4b20cfc9-7dc8-5a84-b488-07c8f41624f6",
+    "raw_text": "Synthetic fixture 45: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 045",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-02T21:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 46",
+      "location": "Demo office"
+    },
+    "id": "0ef6ebac-1a08-5315-9468-e8925bbc23f0",
+    "raw_text": "Synthetic fixture 46: {\"description\": \"Synthetic office maintenance issue 46\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 046",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-02T22:00:00+00:00",
+    "fields": {
+      "amount": "100046.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 2"
+    },
+    "id": "c0c3af9f-5921-5c0e-9dba-925326d9e772",
+    "raw_text": "Synthetic fixture 47: {\"amount\": \"100046.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 2\"}",
+    "title": "Synthetic expense request 047",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-02T23:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-10",
+      "leave_type": "annual",
+      "start_date": "2026-01-09"
+    },
+    "id": "1a96b713-640c-5ede-83f0-5d6e1596e4fc",
+    "raw_text": "Synthetic fixture 48: {\"end_date\": \"2026-01-10\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-09\"}",
+    "title": "Synthetic leave request 048",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T00:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 49",
+      "location": "Demo office"
+    },
+    "id": "6ed5b9d1-6cad-552a-83b1-67d136b85af0",
+    "raw_text": "Synthetic fixture 49: {\"description\": \"Synthetic office maintenance issue 49\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 049",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T01:00:00+00:00",
+    "fields": {
+      "amount": "100049.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 5"
+    },
+    "id": "ce78fddc-9ac0-5927-9662-97385ef6e577",
+    "raw_text": "Synthetic fixture 50: {\"amount\": \"100049.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 5\"}",
+    "title": "Synthetic expense request 050",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T02:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "7ffe0025-72e7-5789-b55e-f604743f987c",
+    "raw_text": "Synthetic fixture 51: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 051",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T03:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 52",
+      "location": "Demo office"
+    },
+    "id": "e92b15b8-b706-58b5-a1a8-4fa9c52353e4",
+    "raw_text": "Synthetic fixture 52: {\"description\": \"Synthetic office maintenance issue 52\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 052",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T04:00:00+00:00",
+    "fields": {
+      "amount": "100052.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 3"
+    },
+    "id": "56e9c06c-2367-55ad-a9a6-b733e157abb5",
+    "raw_text": "Synthetic fixture 53: {\"amount\": \"100052.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 3\"}",
+    "title": "Synthetic expense request 053",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T05:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "39df6a91-c56b-5ee6-85e1-defe5dea485e",
+    "raw_text": "Synthetic fixture 54: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 054",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T06:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 55",
+      "location": "Demo office"
+    },
+    "id": "70d41c54-4e3b-5396-a526-2191a4174a0e",
+    "raw_text": "Synthetic fixture 55: {\"description\": \"Synthetic office maintenance issue 55\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 055",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T07:00:00+00:00",
+    "fields": {
+      "amount": "100055.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 1"
+    },
+    "id": "261bed21-45f9-57cb-928d-f85091172dad",
+    "raw_text": "Synthetic fixture 56: {\"amount\": \"100055.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 1\"}",
+    "title": "Synthetic expense request 056",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T08:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "50cd8e19-2552-593b-9d3d-f6433941c75a",
+    "raw_text": "Synthetic fixture 57: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 057",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T09:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 58",
+      "location": "Demo office"
+    },
+    "id": "6ac4ec2f-3398-538a-a5e9-6aa164ddc60e",
+    "raw_text": "Synthetic fixture 58: {\"description\": \"Synthetic office maintenance issue 58\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 058",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T10:00:00+00:00",
+    "fields": {
+      "amount": "100058.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 4"
+    },
+    "id": "cd84368e-4a36-532d-8d28-53f0d882c856",
+    "raw_text": "Synthetic fixture 59: {\"amount\": \"100058.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 4\"}",
+    "title": "Synthetic expense request 059",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T11:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "4e1720c1-e7c2-59f8-acb6-6d564d826728",
+    "raw_text": "Synthetic fixture 60: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 060",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T12:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 61",
+      "location": "Demo office"
+    },
+    "id": "c7126a3f-0a36-5c02-94ff-636a6bd88cbb",
+    "raw_text": "Synthetic fixture 61: {\"description\": \"Synthetic office maintenance issue 61\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 061",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T13:00:00+00:00",
+    "fields": {
+      "amount": "100061.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 2"
+    },
+    "id": "b127ebe2-1acb-5f0c-8220-d758d707a74c",
+    "raw_text": "Synthetic fixture 62: {\"amount\": \"100061.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 2\"}",
+    "title": "Synthetic expense request 062",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T14:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "3316baa1-43f3-52ff-82b6-e239cda3f2b0",
+    "raw_text": "Synthetic fixture 63: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 063",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T15:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 64",
+      "location": "Demo office"
+    },
+    "id": "4acc50c8-6d3b-52c5-814b-4c6770e2a1fe",
+    "raw_text": "Synthetic fixture 64: {\"description\": \"Synthetic office maintenance issue 64\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 064",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T16:00:00+00:00",
+    "fields": {
+      "amount": "100064.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 5"
+    },
+    "id": "35254efc-8618-5a3e-81dd-5dd06b647592",
+    "raw_text": "Synthetic fixture 65: {\"amount\": \"100064.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 5\"}",
+    "title": "Synthetic expense request 065",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T17:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "9cac5a8c-a3a1-5dd2-903f-0a70775b4983",
+    "raw_text": "Synthetic fixture 66: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 066",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T18:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 67",
+      "location": "Demo office"
+    },
+    "id": "5956ac7e-0285-5075-9286-610928d0b5b1",
+    "raw_text": "Synthetic fixture 67: {\"description\": \"Synthetic office maintenance issue 67\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 067",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T19:00:00+00:00",
+    "fields": {
+      "amount": "100067.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 3"
+    },
+    "id": "04646eda-6c26-5e80-bde9-b039fef9cd54",
+    "raw_text": "Synthetic fixture 68: {\"amount\": \"100067.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 3\"}",
+    "title": "Synthetic expense request 068",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T20:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "dba5f800-412a-511e-9f28-448082ccd9e9",
+    "raw_text": "Synthetic fixture 69: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 069",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-03T21:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 70",
+      "location": "Demo office"
+    },
+    "id": "d22ac3e4-a56e-50ff-be77-79767fb2c04b",
+    "raw_text": "Synthetic fixture 70: {\"description\": \"Synthetic office maintenance issue 70\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 070",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-03T22:00:00+00:00",
+    "fields": {
+      "amount": "100070.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 1"
+    },
+    "id": "877c0b38-1b33-59e3-88b1-ee9c25fc1b8f",
+    "raw_text": "Synthetic fixture 71: {\"amount\": \"100070.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 1\"}",
+    "title": "Synthetic expense request 071",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-03T23:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-11",
+      "leave_type": "annual",
+      "start_date": "2026-01-10"
+    },
+    "id": "81a4ccef-b9c5-5311-bf70-a57799540eac",
+    "raw_text": "Synthetic fixture 72: {\"end_date\": \"2026-01-11\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-10\"}",
+    "title": "Synthetic leave request 072",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T00:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 73",
+      "location": "Demo office"
+    },
+    "id": "2962e0eb-b74b-56e3-af22-1ca0108be593",
+    "raw_text": "Synthetic fixture 73: {\"description\": \"Synthetic office maintenance issue 73\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 073",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T01:00:00+00:00",
+    "fields": {
+      "amount": "100073.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 4"
+    },
+    "id": "71db315c-9298-55dd-b268-30367bf58b2c",
+    "raw_text": "Synthetic fixture 74: {\"amount\": \"100073.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 4\"}",
+    "title": "Synthetic expense request 074",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T02:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "eadd8e4d-d590-5d0f-ab76-21d67d845a92",
+    "raw_text": "Synthetic fixture 75: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 075",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T03:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 76",
+      "location": "Demo office"
+    },
+    "id": "73ef2187-0cfa-54bc-b53a-e9f7b68a7104",
+    "raw_text": "Synthetic fixture 76: {\"description\": \"Synthetic office maintenance issue 76\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 076",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T04:00:00+00:00",
+    "fields": {
+      "amount": "100076.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 2"
+    },
+    "id": "5381d5d9-80b0-5cb2-b0ca-34118818a6b9",
+    "raw_text": "Synthetic fixture 77: {\"amount\": \"100076.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 2\"}",
+    "title": "Synthetic expense request 077",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T05:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "a05bb7df-caa6-583e-94db-14c3ebf3fdda",
+    "raw_text": "Synthetic fixture 78: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 078",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T06:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 79",
+      "location": "Demo office"
+    },
+    "id": "02594cd0-0cf1-5d20-adbc-cfef85b2ca18",
+    "raw_text": "Synthetic fixture 79: {\"description\": \"Synthetic office maintenance issue 79\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 079",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T07:00:00+00:00",
+    "fields": {
+      "amount": "100079.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 5"
+    },
+    "id": "3fb10181-4461-5a0e-ae32-16b2ceafd67d",
+    "raw_text": "Synthetic fixture 80: {\"amount\": \"100079.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 5\"}",
+    "title": "Synthetic expense request 080",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T08:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "856269c1-ce7d-555f-b44b-7c713cc1dc69",
+    "raw_text": "Synthetic fixture 81: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 081",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T09:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 82",
+      "location": "Demo office"
+    },
+    "id": "8972baa1-a2c7-5a2f-8c09-206c1db6d25f",
+    "raw_text": "Synthetic fixture 82: {\"description\": \"Synthetic office maintenance issue 82\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 082",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T10:00:00+00:00",
+    "fields": {
+      "amount": "100082.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 3"
+    },
+    "id": "37893e4a-c9a6-593c-b2e3-adb99fb036b8",
+    "raw_text": "Synthetic fixture 83: {\"amount\": \"100082.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 3\"}",
+    "title": "Synthetic expense request 083",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T11:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "2f95d898-c2e2-52ed-8519-71cc5c2696fd",
+    "raw_text": "Synthetic fixture 84: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 084",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T12:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 85",
+      "location": "Demo office"
+    },
+    "id": "bc15f3e1-9f69-55bf-bcdf-94fb0b63c06b",
+    "raw_text": "Synthetic fixture 85: {\"description\": \"Synthetic office maintenance issue 85\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 085",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T13:00:00+00:00",
+    "fields": {
+      "amount": "100085.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 1"
+    },
+    "id": "13835dc9-b15e-5896-9f0b-2eade6d70abc",
+    "raw_text": "Synthetic fixture 86: {\"amount\": \"100085.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 1\"}",
+    "title": "Synthetic expense request 086",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T14:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "c7efefa4-8cd2-51dd-be18-cc0b5060961b",
+    "raw_text": "Synthetic fixture 87: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 087",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T15:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 88",
+      "location": "Demo office"
+    },
+    "id": "4f33a2c2-02ac-50d9-86bf-e0f61c22a146",
+    "raw_text": "Synthetic fixture 88: {\"description\": \"Synthetic office maintenance issue 88\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 088",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T16:00:00+00:00",
+    "fields": {
+      "amount": "100088.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 4"
+    },
+    "id": "592a198d-b12b-5242-8fae-60facafaf8e9",
+    "raw_text": "Synthetic fixture 89: {\"amount\": \"100088.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 4\"}",
+    "title": "Synthetic expense request 089",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T17:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "e803d63e-1be8-59ee-8d65-cce3de866cef",
+    "raw_text": "Synthetic fixture 90: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 090",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T18:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 91",
+      "location": "Demo office"
+    },
+    "id": "6e592f10-b4d8-5f17-bc6f-1e81f6722ba1",
+    "raw_text": "Synthetic fixture 91: {\"description\": \"Synthetic office maintenance issue 91\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 091",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T19:00:00+00:00",
+    "fields": {
+      "amount": "100091.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 2"
+    },
+    "id": "50ece3a9-1ee5-5c19-aedc-336121567916",
+    "raw_text": "Synthetic fixture 92: {\"amount\": \"100091.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 2\"}",
+    "title": "Synthetic expense request 092",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T20:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "4145188c-5382-517b-9448-9930cb57c748",
+    "raw_text": "Synthetic fixture 93: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 093",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-04T21:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 94",
+      "location": "Demo office"
+    },
+    "id": "3cef9e8f-952d-5abe-96ae-475d32a28bb7",
+    "raw_text": "Synthetic fixture 94: {\"description\": \"Synthetic office maintenance issue 94\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 094",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-04T22:00:00+00:00",
+    "fields": {
+      "amount": "100094.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 5"
+    },
+    "id": "db1d326f-6e14-5e8b-8000-62af8acc63ca",
+    "raw_text": "Synthetic fixture 95: {\"amount\": \"100094.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 5\"}",
+    "title": "Synthetic expense request 095",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-04T23:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-12",
+      "leave_type": "annual",
+      "start_date": "2026-01-11"
+    },
+    "id": "c94e7ae4-ccd5-56fa-b728-a8720869b8c3",
+    "raw_text": "Synthetic fixture 96: {\"end_date\": \"2026-01-12\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-11\"}",
+    "title": "Synthetic leave request 096",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-05T00:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 97",
+      "location": "Demo office"
+    },
+    "id": "fe426dfb-f60f-50a0-bfd2-b6c23615ad89",
+    "raw_text": "Synthetic fixture 97: {\"description\": \"Synthetic office maintenance issue 97\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 097",
+    "type": "service"
+  },
+  {
+    "created_at": "2026-01-05T01:00:00+00:00",
+    "fields": {
+      "amount": "100097.00",
+      "currency": "PKR",
+      "purpose": "Synthetic office supplies",
+      "vendor": "Fictional Supplier 3"
+    },
+    "id": "d1c38585-f9bc-52aa-8c5a-4a1f0c5b07f9",
+    "raw_text": "Synthetic fixture 98: {\"amount\": \"100097.00\", \"currency\": \"PKR\", \"purpose\": \"Synthetic office supplies\", \"vendor\": \"Fictional Supplier 3\"}",
+    "title": "Synthetic expense request 098",
+    "type": "expense"
+  },
+  {
+    "created_at": "2026-01-05T02:00:00+00:00",
+    "fields": {
+      "end_date": "2026-01-13",
+      "leave_type": "annual",
+      "start_date": "2026-01-12"
+    },
+    "id": "f5f8c293-e8e5-578c-914a-a06b183bda86",
+    "raw_text": "Synthetic fixture 99: {\"end_date\": \"2026-01-13\", \"leave_type\": \"annual\", \"start_date\": \"2026-01-12\"}",
+    "title": "Synthetic leave request 099",
+    "type": "leave"
+  },
+  {
+    "created_at": "2026-01-05T03:00:00+00:00",
+    "fields": {
+      "description": "Synthetic office maintenance issue 100",
+      "location": "Demo office"
+    },
+    "id": "c7c0d379-0b9d-5b20-a091-6502369808f9",
+    "raw_text": "Synthetic fixture 100: {\"description\": \"Synthetic office maintenance issue 100\", \"location\": \"Demo office\"}",
+    "title": "Synthetic service request 100",
+    "type": "service"
+  }
+]

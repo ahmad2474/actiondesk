@@ -1,0 +1,1 @@
+"""Local foundation verification helpers."""

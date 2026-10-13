@@ -1,0 +1,42 @@
+name: Foundation checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: foundation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.13'
+          python-version: '3.12'
+      - name: Install locked dependencies
+        run: |
+          uv sync --frozen
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Configure synthetic local stack
+        run: cp .env.example .env
+      - name: Run foundation verification
+        run: make verify
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose --env-file .env -f infra/compose.yaml logs --tail=100
+      - name: Clean up disposable CI volumes
+        if: always()
+        run: docker compose --env-file .env -f infra/compose.yaml down --volumes

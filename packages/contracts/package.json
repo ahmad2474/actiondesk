@@ -1,0 +1,1 @@
+{"name":"@actiondesk/contracts","version":"0.0.1","private":true,"types":"src/api.d.ts","scripts":{"typecheck":"tsc --noEmit"},"devDependencies":{"typescript":"^5.9.3"}}
