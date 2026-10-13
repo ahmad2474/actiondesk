@@ -10,7 +10,7 @@ setup:
 
 dev:
 	@test -f .env || (echo 'Copy .env.example to .env first.'; exit 1)
-	$(COMPOSE) up --build --wait --wait-timeout 180
+	$(COMPOSE) up --build --wait --wait-timeout 300
 
 down:
 	$(COMPOSE) down

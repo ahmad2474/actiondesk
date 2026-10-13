@@ -34,9 +34,12 @@ jobs:
         run: cp .env.example .env
       - name: Run foundation verification
         run: make verify
-      - name: Service logs on failure
+      - name: Service diagnostics on failure
         if: failure()
-        run: docker compose --env-file .env -f infra/compose.yaml logs --tail=100
+        run: |
+          docker compose --env-file .env -f infra/compose.yaml ps -a
+          docker inspect --format='{{json .State.Health}}' actiondesk-web-1 || true
+          docker compose --env-file .env -f infra/compose.yaml logs --no-color --tail=300
       - name: Clean up disposable CI volumes
         if: always()
         run: docker compose --env-file .env -f infra/compose.yaml down --volumes
