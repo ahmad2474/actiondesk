@@ -17,6 +17,8 @@ coverage/
 playwright-report/
 test-results/
 .venv-checks/
+docs/ActionDesk_PRD_Technical_Architecture_v1.pdf
+docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf
 
 # Credentials and local state; public placeholders remain explicitly allowed above.
 .aws/
