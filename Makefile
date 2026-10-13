@@ -1,5 +1,6 @@
 SHELL := /bin/sh
-COMPOSE := docker compose --env-file .env -f infra/compose.yaml
+COMPOSE_FILES ?= -f infra/compose.yaml -f infra/compose.local.yaml
+COMPOSE := docker compose --env-file .env $(COMPOSE_FILES)
 export UV_CACHE_DIR := $(CURDIR)/.cache/uv
 
 .PHONY: setup dev down logs seed seed-smoke migrate lint typecheck test test-integration test-web worker-smoke contracts contracts-check compose-check verify
@@ -10,7 +11,7 @@ setup:
 
 dev:
 	@test -f .env || (echo 'Copy .env.example to .env first.'; exit 1)
-	$(COMPOSE) up --build --wait --wait-timeout 300
+	$(COMPOSE) up --build --wait --wait-timeout 180
 
 down:
 	$(COMPOSE) down
@@ -55,6 +56,7 @@ contracts-check:
 
 compose-check:
 	docker compose --env-file .env.example -f infra/compose.yaml config --quiet
+	docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.local.yaml config --quiet
 
 test-web:
 	npm run test:web

@@ -1,0 +1,25 @@
+# Development-only source mounts. CI uses compose.yaml without this override.
+x-backend-mounts: &backend-mounts
+  volumes:
+    - ../apps:/workspace/apps:ro
+    - ../data:/workspace/data:ro
+    - ../tests:/workspace/tests:ro
+    - ../scripts:/workspace/scripts:ro
+    - ../alembic.ini:/workspace/alembic.ini:ro
+
+services:
+  bootstrap:
+    <<: *backend-mounts
+  api:
+    <<: *backend-mounts
+  worker:
+    <<: *backend-mounts
+  checks:
+    <<: *backend-mounts
+  web:
+    volumes:
+      - ../apps/web:/workspace/apps/web
+      - web_next:/workspace/apps/web/.next
+
+volumes:
+  web_next:

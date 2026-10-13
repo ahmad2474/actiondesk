@@ -9,12 +9,6 @@ x-backend: &backend
     ACTIONDESK_ENVIRONMENT: local
     ACTIONDESK_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
     ACTIONDESK_REDIS_URL: redis://redis:6379/0
-  volumes:
-    - ../apps:/workspace/apps:ro
-    - ../data:/workspace/data:ro
-    - ../tests:/workspace/tests:ro
-    - ../scripts:/workspace/scripts:ro
-    - ../alembic.ini:/workspace/alembic.ini:ro
 services:
   postgres:
     image: postgres:17.6-bookworm
@@ -73,17 +67,14 @@ services:
     init: true
     environment: {NEXT_TELEMETRY_DISABLED: '1'}
     ports: ['127.0.0.1:${WEB_PORT:-3000}:3000']
-    volumes:
-      - ../apps/web:/workspace/apps/web
-      - web_next:/workspace/apps/web/.next
     depends_on:
       api: {condition: service_healthy}
     healthcheck:
       test: [CMD, node, -e, 'fetch("http://127.0.0.1:3000").then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))']
       interval: 10s
       timeout: 8s
-      retries: 18
-      start_period: 45s
+      retries: 10
+      start_period: 20s
   checks:
     <<: *backend
     profiles: [checks]
@@ -97,4 +88,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  web_next:

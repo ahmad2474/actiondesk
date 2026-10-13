@@ -33,7 +33,7 @@ jobs:
       - name: Configure synthetic local stack
         run: cp .env.example .env
       - name: Run foundation verification
-        run: make verify
+        run: make verify COMPOSE_FILES="-f infra/compose.yaml"
       - name: Service diagnostics on failure
         if: failure()
         run: |

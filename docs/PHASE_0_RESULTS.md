@@ -154,3 +154,13 @@ Required to finish, in an environment permitting registry downloads, `.git` writ
 6. Update this report only with observed evidence. Phase 0 may then be considered for completion; **stop for explicit approval before Phase 1**.
 
 No Phase 1 feature, external AI integration, AWS deployment, paid service, real customer data or remote Git operation was introduced.
+
+## CI checkout-permission follow-up
+
+The user supplied GitHub Actions diagnostics showing `EACCES` writing `/workspace/apps/web/next-env.d.ts`. The development bind mount replaced the directory owned by the image's non-root `node` user with the runner-owned checkout.
+
+Source mounts and the local Next.js cache volume now live in `infra/compose.local.yaml`; the base has no checkout bind mounts. Local Make targets select both files. CI explicitly selects only the base, including recursive verification targets. `USER node` and all probe commands are preserved. Temporary web retries/start period were reverted to 10/20s and the Compose wait to 180s. Useful failure diagnostics remain.
+
+Executed `make compose-check` (both configurations), `make -n dev`, and `make -n verify COMPOSE_FILES="-f infra/compose.yaml"`: passed. The isolated Python unit suite passed 20 tests (2 existing upstream deprecation warnings); 4 configuration tests also passed with CI-style inherited Make flags. Ruff lint/format and `git diff --check` passed. Regression tests inspect actual merged Compose output, prohibit CI source binds/root-user overrides, retain local hot reload, preserve health checks, and verify recursive Make selection.
+
+`docker version` still reported socket permission denied locally, so container startup and a GitHub Actions rerun are not claimed verified by this follow-up. Phase 1 remains on hold.
