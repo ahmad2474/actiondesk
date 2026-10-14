@@ -8,6 +8,11 @@ class Role(StrEnum):
     ADMIN = "admin"
 
 
+class UserStatus(StrEnum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+
+
 class RequestType(StrEnum):
     SERVICE = "service"
     EXPENSE = "expense"
@@ -31,3 +36,8 @@ class RequestStatus(StrEnum):
     COMPLETED = "COMPLETED"
     REJECTED = "REJECTED"
     WITHDRAWN = "WITHDRAWN"
+
+
+# Creation is the only operation in milestone 1. Existing historical states stay intact.
+def initial_request_status(request_type: RequestType) -> RequestStatus:
+    return RequestStatus.SUBMITTED if request_type == RequestType.SERVICE else RequestStatus.DRAFT

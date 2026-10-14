@@ -1,12 +1,12 @@
 # ActionDesk
 
-AI-assisted internal operations platform. This repository currently implements the **Phase 0 foundation only**: a Next.js placeholder, FastAPI health endpoints, tenant-aware PostgreSQL schema, deterministic synthetic fixtures, Redis, and a side-effect-free Celery worker. Authentication and business workflows are not implemented.
+AI-assisted internal operations platform. Phase 0 provides the Next.js placeholder, health endpoints, tenant-aware PostgreSQL schema, deterministic synthetic fixtures, Redis, and a side-effect-free Celery worker. **Phase 1 milestone 1** adds the request creation/read persistence slice. Login, approvals, AI, notifications, and frontend workflows are not implemented.
 
-**Current status:** Phase 0 is complete. The local development stack, CI-equivalent base stack, and GitHub Actions foundation workflow passed, as confirmed by the project owner. See [verification results and closeout evidence](docs/PHASE_0_RESULTS.md). Phase 1 requires explicit approval.
+**Current status:** Phase 0 is complete; its stack and CI verification remains recorded in [Phase 0 results](docs/PHASE_0_RESULTS.md). Phase 1 milestone 1 is authorized and implemented, with live PostgreSQL verification pending because this execution environment blocks Docker/socket access. See [milestone scope, API boundary, and actual checks](docs/PHASE_1_MILESTONE_1.md). Further milestones require explicit approval.
 
 ## Specification and decisions
 
-[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 requires separate approval.
+[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization is limited to milestone 1.
 
 ## Local setup
 
@@ -36,7 +36,7 @@ The example database password is for local synthetic development only. PostgreSQ
 ```mermaid
 flowchart LR
     Browser --> Web[Next.js / TypeScript]
-    Browser --> API[FastAPI health API]
+    Browser --> API[FastAPI health and request API]
     API --> DB[(PostgreSQL)]
     API --> Redis[(Redis)]
     Bootstrap[Migration + synthetic seed] --> DB
@@ -45,13 +45,15 @@ flowchart LR
 
 Web/API/worker are separate processes in one monorepo. API and worker share the Python package defined in root `pyproject.toml`. PostgreSQL owns workflow state, approvals, policies, history, and outbox records. Redis/Celery is transport; no durable business jobs, relay, AI calls, or notifications run in Phase 0.
 
-`apps/api/app/domain` holds types and approved safety predicates; `db` contains SQLAlchemy models and fixture persistence. Alembic revisions live in `apps/api/migrations`; `0001_foundation.sql` is reviewed PostgreSQL DDL, not runtime table creation. `packages/contracts` contains FastAPI OpenAPI and generated TS declarations. `data/seed/requests.json` is canonical synthetic input. Tests cover unit, PostgreSQL integration, and browser smoke checks.
+`apps/api/app/domain` holds types and approved safety predicates; `db` contains SQLAlchemy models and fixture persistence. Request routers, typed schemas, and transaction services live in `api`, `schemas`, and `services`. Alembic revisions live in `apps/api/migrations`; milestone 1 adds `0002_request_foundation` without rewriting the original foundation migration. `packages/contracts` contains FastAPI OpenAPI and generated TS declarations. `data/seed/requests.json` is canonical synthetic input. Tests cover unit, PostgreSQL integration, and browser smoke checks.
 
 ## Schema and fixtures
 
-The schema includes organizations, departments, users, role assignments, employee managers, department managers, versioned approval policies, requests, typed fixture fields stored as JSONB, immutable request events, approvals, and an initial outbox table.
+The schema includes organizations, departments, users, a fixed role catalog, role assignments, employee managers, department managers, versioned approval policies, requests, typed fixture fields stored as JSONB, immutable request events, approvals, and an initial outbox table. Milestone 1 requires a department on each request and a matching history event for creation or status/version changes at transaction commit.
 
-Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. Approvals identify a role-qualified approver and constrain requester separation. Policy definitions identify roles/scopes and thresholds rather than individual users. Policy execution, authorization endpoints, cancellation/reversal, reopening, and payment-processing actions are deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and required future query boundaries.
+Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. The existing approvals schema identifies a role-qualified approver and constrains requester separation; no approval execution is implemented. Policy definitions identify roles/scopes and thresholds rather than individual users. Policy execution, login, cancellation/reversal, reopening, and payment-processing actions are deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and [milestone 1 notes](docs/PHASE_1_MILESTONE_1.md) for the request API boundary.
+
+Request endpoints are `POST /requests`, `GET /requests/{request_id}`, and `GET /requests`. They deny access with 401 until a trusted identity verifier is implemented; only tests install identity overrides. Client-supplied identity headers never grant access. Creation requires a UUID `Idempotency-Key` and a requester matching the trusted identity. Service requests start at `SUBMITTED`; expense/leave requests start at `DRAFT`. Get/list are restricted to the requester's own organization and records. There are no update or transition endpoints.
 
 ```sh
 make migrate

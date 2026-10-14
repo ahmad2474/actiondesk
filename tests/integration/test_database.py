@@ -1,63 +1,26 @@
-from collections.abc import Iterator
 from uuid import uuid4
 
 import pytest
 from alembic import command
 from alembic.config import Config
 from redis import Redis
-from sqlalchemy import Engine, UniqueConstraint, create_engine, inspect, text
+from sqlalchemy import Engine, UniqueConstraint, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from app.core.config import get_settings
 from app.db.models import Base
 from app.db.seed import SEED_AT, fixture_id, seed
-from app.db.session import get_engine
 from app.main import EXPECTED_REVISION, dependency_checks
 
 pytestmark = pytest.mark.integration
-
-
-@pytest.fixture
-def database() -> Iterator[Engine]:
-    # Test databases only. Never downgrade, truncate, or reset the development database.
-    settings = get_settings()
-    url = make_url(settings.database_url)
-    name = "actiondesk_test_" + uuid4().hex
-    admin = create_engine(url, isolation_level="AUTOCOMMIT", hide_parameters=True)
-    with admin.connect() as connection:
-        connection.execute(text(f'CREATE DATABASE "{name}"'))
-    test_url = url.set(database=name).render_as_string(hide_password=False)
-    patch = pytest.MonkeyPatch()
-    patch.setenv("ACTIONDESK_DATABASE_URL", test_url)
-    get_settings.cache_clear()
-    get_engine.cache_clear()
-    engine = get_engine()
-    try:
-        configuration = Config("alembic.ini")
-        command.upgrade(configuration, "head")
-        command.upgrade(configuration, "head")
-        with engine.connect() as connection:
-            assert (
-                connection.scalar(text("SELECT version_num FROM alembic_version"))
-                == EXPECTED_REVISION
-            )
-        command.check(configuration)  # Compare reviewed DDL and SQLAlchemy metadata.
-        yield engine
-    finally:
-        engine.dispose()
-        get_engine.cache_clear()
-        patch.undo()
-        get_settings.cache_clear()
-        with admin.connect() as connection:
-            connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
-        admin.dispose()
 
 
 def snapshot(engine: Engine) -> list[object]:
     result: list[object] = []
     with engine.connect() as connection:
         for table in [
+            "roles",
             "organizations",
             "departments",
             "users",
@@ -129,19 +92,30 @@ def test_database_rejects_cross_organization_creator(database: Engine) -> None:
     seed(database)
     with database.connect() as connection, connection.begin():
         foreign_org = uuid4()
+        foreign_department = uuid4()
         connection.execute(
             text("INSERT INTO organizations(id,slug,name) VALUES(:id,:slug,'Other')"),
             {"id": foreign_org, "slug": str(foreign_org)},
         )
-        with pytest.raises(IntegrityError), connection.begin_nested():
+        connection.execute(
+            text("INSERT INTO departments(id,organization_id,name) VALUES(:id,:org,'Other')"),
+            {"id": foreign_department, "org": foreign_org},
+        )
+        with pytest.raises(IntegrityError) as error, connection.begin_nested():
             connection.execute(
                 text(
                     "INSERT INTO requests(id,organization_id,type,title,raw_text,status,"
-                    "created_by) "
-                    "VALUES(:id,:org,'service','Invalid','Synthetic','SUBMITTED',:creator)"
+                    "created_by,department_id) "
+                    "VALUES(:id,:org,'service','Invalid','Synthetic','SUBMITTED',:creator,:department)"
                 ),
-                {"id": uuid4(), "org": foreign_org, "creator": fixture_id("user/employee")},
+                {
+                    "id": uuid4(),
+                    "org": foreign_org,
+                    "creator": fixture_id("user/employee"),
+                    "department": foreign_department,
+                },
             )
+        assert getattr(error.value.orig, "sqlstate", None) == "23503"
 
 
 def test_manager_assignment_requires_manager_role(database: Engine) -> None:
@@ -369,10 +343,23 @@ def test_tenant_relationships_reject_foreign_organization(database: Engine, case
         connection.execute(
             text(
                 "INSERT INTO "
-                "requests(id,organization_id,type,title,raw_text,status,created_by) "
-                "VALUES(:id,:org,'expense','Other','Synthetic','SUBMITTED',:creator)"
+                "requests(id,organization_id,type,title,raw_text,status,created_by,department_id) "
+                "VALUES(:id,:org,'expense','Other','Synthetic','SUBMITTED',:creator,:department)"
             ),
-            {"id": foreign_request, "org": foreign_org, "creator": foreign_user},
+            {
+                "id": foreign_request,
+                "org": foreign_org,
+                "creator": foreign_user,
+                "department": foreign_department,
+            },
+        )
+        connection.execute(
+            text(
+                "INSERT INTO request_events(id,organization_id,request_id,sequence,actor_id,"
+                "action,to_state,reason,at) VALUES(:id,:org,:request,1,:actor,"
+                "'created','SUBMITTED','Synthetic',now())"
+            ),
+            {"id": uuid4(), "org": foreign_org, "request": foreign_request, "actor": foreign_user},
         )
         local_request = connection.scalar(
             text("SELECT id FROM requests WHERE organization_id=:org AND type='expense' LIMIT 1"),

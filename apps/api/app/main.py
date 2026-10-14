@@ -3,12 +3,17 @@ from typing import Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from starlette.middleware.base import RequestResponseEndpoint
+from starlette.responses import JSONResponse
 
+from app.api.requests import router as requests_router
 from app.core.config import get_settings
+from app.domain.errors import DomainError
+from app.schemas.core import Problem
 
-EXPECTED_REVISION = "0001_foundation"
+EXPECTED_REVISION = "0002_request_foundation"
 
 
 class Health(BaseModel):
@@ -27,6 +32,28 @@ class Readiness(BaseModel):
 
 
 app = FastAPI(title="ActionDesk API", version="0.0.1")
+app.include_router(requests_router)
+
+
+@app.exception_handler(DomainError)
+async def domain_error(request: Request, error: DomainError) -> JSONResponse:
+    return JSONResponse(
+        status_code=error.status,
+        media_type="application/problem+json",
+        content=Problem(title=error.title, status=error.status, detail=error.detail).model_dump(),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_input(request: Request, error: RequestValidationError) -> JSONResponse:
+    # Pydantic error inputs can include sensitive request text. Never echo them.
+    return JSONResponse(
+        status_code=422,
+        media_type="application/problem+json",
+        content=Problem(
+            title="Unprocessable Content", status=422, detail="Request input is invalid."
+        ).model_dump(),
+    )
 
 
 @app.middleware("http")

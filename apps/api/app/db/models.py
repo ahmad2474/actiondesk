@@ -1,4 +1,4 @@
-"""Foundation schema only; workflow execution and authorization arrive in Phase 1."""
+"""Tenant-aware persistence shared by the API and future workflow services."""
 
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -76,6 +76,13 @@ class User(TenantEntity, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class RoleDefinition(Base):
+    """Fixed role catalog; assignments remain separate and allow multiple roles."""
+
+    __tablename__ = "roles"
+    name: Mapped[Role] = mapped_column(ROLE, primary_key=True)
+
+
 class RoleAssignment(Base):
     __tablename__ = "role_assignments"
     __table_args__ = (
@@ -83,7 +90,7 @@ class RoleAssignment(Base):
     )
     organization_id: Mapped[UUID] = mapped_column(primary_key=True)
     user_id: Mapped[UUID] = mapped_column(primary_key=True)
-    role: Mapped[Role] = mapped_column(ROLE, primary_key=True)
+    role: Mapped[Role] = mapped_column(ROLE, ForeignKey("roles.name"), primary_key=True)
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -151,6 +158,9 @@ class Request(TenantEntity, Base):
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
         UniqueConstraint("organization_id", "id", "created_by"),
+        UniqueConstraint(
+            "organization_id", "created_by", "idempotency_key", name="uq_request_creation_key"
+        ),
         ForeignKeyConstraint(
             ["organization_id", "created_by"], ["users.organization_id", "users.id"]
         ),
@@ -201,7 +211,8 @@ class Request(TenantEntity, Base):
     priority: Mapped[str] = mapped_column(String(20), server_default="normal")
     created_by: Mapped[UUID]
     assigned_to: Mapped[UUID | None]
-    department_id: Mapped[UUID | None]
+    department_id: Mapped[UUID]
+    idempotency_key: Mapped[UUID | None]
     approval_policy_id: Mapped[UUID | None]
     follow_up_to_id: Mapped[UUID | None]
     version: Mapped[int] = mapped_column(Integer, server_default="1")

@@ -96,5 +96,8 @@ def test_readiness_matrix(
         assert client.get("/ready").status_code == expected
 
 
-def test_no_business_routes() -> None:
-    assert set(main.app.openapi()["paths"]) == {"/health", "/ready"}
+def test_only_milestone_one_routes() -> None:
+    paths = main.app.openapi()["paths"]
+    assert set(paths) == {"/health", "/ready", "/requests", "/requests/{request_id}"}
+    assert set(paths["/requests"]) == {"get", "post"}
+    assert set(paths["/requests/{request_id}"]) == {"get"}
