@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import JSONResponse
 
+from app.api.approvals import router as approvals_router
 from app.api.auth import router as auth_router
 from app.api.cors import AuthCORSMiddleware
 from app.api.requests import router as requests_router
@@ -19,7 +20,7 @@ from app.domain.errors import DomainError
 from app.schemas.core import Problem
 from app.services.passwords import dummy_hash
 
-EXPECTED_REVISION = "0003_auth_sessions"
+EXPECTED_REVISION = "0004_workflows"
 
 
 class Health(BaseModel):
@@ -47,6 +48,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="ActionDesk API", version="0.0.1", lifespan=lifespan)
 app.include_router(requests_router)
 app.include_router(auth_router)
+app.include_router(approvals_router)
 app.add_middleware(
     AuthCORSMiddleware,
     allow_origins=[],

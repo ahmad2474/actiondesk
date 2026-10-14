@@ -437,4 +437,16 @@ def test_tenant_relationships_reject_foreign_organization(database: Engine, case
         }
         with pytest.raises(IntegrityError) as error, connection.begin_nested():
             connection.execute(text(statements[case]), parameters)
-        assert getattr(error.value.orig, "sqlstate", None) == "23503"  # Foreign-key violation.
+        # Immutable/frozen workflow guards can reject before the tenant FK executes.
+        guarded = {
+            "request_creator",
+            "request_assignee",
+            "request_department",
+            "request_policy",
+            "request_processor",
+            "request_fields",
+            "approval_request",
+            "approval_actor",
+        }
+        expected = {"23503", "23514"} if case in guarded else {"23503"}
+        assert getattr(error.value.orig, "sqlstate", None) in expected

@@ -210,3 +210,43 @@ def test_real_redis_login_throttle(database: Engine) -> None:
         limiter.check(address, email)
     assert error.value.status == 429
     assert int(error.value.headers["Retry-After"]) > 0
+
+
+def test_live_workflow_mutation_requires_session_origin_and_csrf(
+    client: TestClient, account: dict[str, str], database: Engine
+) -> None:
+    csrf = login(client, account)
+    created = client.post(
+        "/requests",
+        json={
+            "department_id": str(fixture_id("department")),
+            "type": "expense",
+            "title": "Synthetic withdrawal",
+            "raw_text": "Synthetic",
+        },
+        headers={"Origin": ORIGIN, "X-CSRF-Token": csrf, "Idempotency-Key": secrets.token_hex(16)},
+    )
+    assert created.status_code == 201
+    url = f"/requests/{created.json()['id']}/transitions"
+    body = {"action": "cancel", "expected_version": 1, "reason": "Synthetic withdrawal"}
+    key = secrets.token_hex(16)
+    for headers in (
+        {"Idempotency-Key": key},
+        {"Origin": ORIGIN, "Idempotency-Key": key},
+        {"Origin": "http://foreign.invalid", "X-CSRF-Token": csrf, "Idempotency-Key": key},
+    ):
+        assert client.post(url, json=body, headers=headers).status_code == 403
+    result = client.post(
+        url, json=body, headers={"Origin": ORIGIN, "X-CSRF-Token": csrf, "Idempotency-Key": key}
+    )
+    assert result.status_code == 200, result.text
+    assert result.json()["request"]["status"] == "WITHDRAWN"
+    assert client.get("/approvals").status_code == 200
+    client.post("/auth/logout", headers={"Origin": ORIGIN, "X-CSRF-Token": csrf})
+    assert (
+        client.post(
+            url, json=body, headers={"Origin": ORIGIN, "X-CSRF-Token": csrf, "Idempotency-Key": key}
+        ).status_code
+        == 401
+    )
+    assert client.get("/approvals").status_code == 401

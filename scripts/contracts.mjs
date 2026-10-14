@@ -26,7 +26,9 @@ export async function generateArtifacts(document) {
   // Use the approved generator only: dependency failures are never converted
   // into a hand-written or partial TypeScript schema fallback.
   const { default: openapiTS, astToString } = await import("openapi-typescript");
-  const ast = await openapiTS(document);
+  // Discriminator normalization mutates input in the approved generator.
+  // Keep the FastAPI source document intact and repeated generation deterministic.
+  const ast = await openapiTS(structuredClone(document));
   return {
     [SCHEMA_FILE]: JSON.stringify(document, null, 2) + "\n",
     [TYPES_FILE]: "// Generated from FastAPI OpenAPI. Run make contracts; do not edit.\n"

@@ -148,7 +148,7 @@ def test_get_list_pagination_and_ownership(
     app.dependency_overrides[authenticated_principal] = lambda: other
     assert client.get("/requests").json()["items"] == []
     assert client.get(f"/requests/{ids[0]}").status_code == 404
-    # Same organization, different requester also cannot enumerate objects, even as admin.
+    # Default list remains owned. Admin may read service content for authorized routing.
     colleague, _ = provision(unit_engine, requester[0].organization_id)
     with Session(unit_engine) as session, session.begin():
         session.add(
@@ -160,7 +160,7 @@ def test_get_list_pagination_and_ownership(
         )
     app.dependency_overrides[authenticated_principal] = lambda: colleague
     assert client.get("/requests").json()["items"] == []
-    assert client.get(f"/requests/{ids[0]}").status_code == 404
+    assert client.get(f"/requests/{ids[0]}").status_code == 200
 
 
 def test_unverified_identity_is_denied() -> None:

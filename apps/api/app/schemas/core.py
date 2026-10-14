@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -22,6 +22,14 @@ class InputSchema(BaseModel):
 
 class ReadSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("*", mode="after")
+    @classmethod
+    def utc_timestamps(cls, value: object) -> object:
+        if isinstance(value, datetime):
+            # PostgreSQL uses aware timestamps; the isolated SQLite adapter omits tzinfo.
+            return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+        return value
 
 
 class UserCreate(InputSchema):
@@ -92,7 +100,38 @@ class RequestRead(ReadSchema):
     updated_at: datetime
 
 
+class DecisionRead(ReadSchema):
+    id: UUID
+    approval_id: UUID
+    actor_id: UUID
+    required_role: Role
+    outcome: str
+    reason: str
+    at: datetime
+    event_sequence: int
+
+
+class StepRead(ReadSchema):
+    id: UUID
+    step: int
+    approver_id: UUID | None
+    approver_role: Role
+    status: str
+    candidates: list[UUID]
+    decision: DecisionRead | None
+
+
 class RequestDetail(RequestRead):
+    assigned_to: UUID | None = None
+    approved_at: datetime | None = None
+    completed_at: datetime | None = None
+    processed_by: UUID | None = None
+    processing_reference: str | None = None
+    resolution: str | None = None
+    approval_policy_id: UUID | None = None
+    structured_fields: dict[str, object] | None = None
+    leave_overlap: bool = False
+    approvals: list[StepRead] = Field(default_factory=list)
     status_history: list[StatusHistoryRead]
 
 

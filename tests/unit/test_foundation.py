@@ -96,7 +96,7 @@ def test_readiness_matrix(
         assert client.get("/ready").status_code == expected
 
 
-def test_only_milestone_one_routes() -> None:
+def test_only_authorized_milestone_routes() -> None:
     paths = main.app.openapi()["paths"]
     assert set(paths) == {
         "/health",
@@ -106,6 +106,8 @@ def test_only_milestone_one_routes() -> None:
         "/auth/login",
         "/auth/logout",
         "/auth/me",
+        "/approvals",
+        "/requests/{request_id}/transitions",
     }
     assert set(paths["/requests"]) == {"get", "post"}
     assert set(paths["/requests/{request_id}"]) == {"get"}

@@ -1,12 +1,12 @@
 # ActionDesk
 
-AI-assisted internal operations platform. Phase 0 provides the Next.js placeholder, health endpoints, tenant-aware PostgreSQL schema, deterministic synthetic fixtures, Redis, and a side-effect-free Celery worker. **Phase 1 milestone 2** adds PostgreSQL cookie sessions and local password authentication to the request creation/read persistence slice. Approvals, AI, notifications, and frontend workflows are not implemented.
+AI-assisted internal operations platform. Phase 0 provides the skeleton and local infrastructure. Phase 1 milestones 1 and 2 provide tenant-aware creation/reads and PostgreSQL opaque-cookie authentication. **Milestone 3** adds deterministic manual service, expense and leave transitions, durable approval evidence, participant visibility and scoped work queues. AI, notifications and frontend workflow UI remain deferred.
 
-**Current status:** Phase 0 and milestone 1 are accepted and live-verified by the project owner. Milestone 2 code is implemented; dependency restoration and live verification remain blocked in this execution environment. See [milestone 2 results and host steps](docs/PHASE_1_MILESTONE_2.md). Registry access is needed to regenerate `uv.lock` and install Argon2 before starting this revision. Further milestones require explicit approval.
+**Current status:** Phase 0 and milestones 1 and 2 are owner-confirmed complete with live verification and green CI. Milestone 3 implementation and current validation results are in [the milestone report](docs/PHASE_1_MILESTONE_3.md). This work is uncommitted. Milestone 4 requires explicit approval.
 
 ## Specification and decisions
 
-[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization is limited to milestone 2.
+[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization stops at milestone 3; [the approved design](docs/PHASE_1_MILESTONE_3_DESIGN.md) records its policy decisions.
 
 ## Local setup
 
@@ -51,7 +51,7 @@ Web/API/worker are separate processes in one monorepo. API and worker share the 
 
 The schema includes organizations, departments, users, a fixed role catalog, role assignments, employee managers, department managers, versioned approval policies, requests, typed fixture fields stored as JSONB, immutable request events, approvals, and an initial outbox table. Milestone 1 requires a department on each request and a matching history event for creation or status/version changes at transaction commit.
 
-Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. The existing approvals schema identifies a role-qualified approver and constrains requester separation; no approval execution is implemented. Policy definitions identify roles/scopes and thresholds rather than individual users. Policy execution, cancellation/reversal, reopening, and payment-processing actions are deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and [milestone 1 notes](docs/PHASE_1_MILESTONE_1.md) for the request API boundary.
+Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. Approval steps preserve legacy nominees and use immutable candidate snapshots and actual-actor decisions for new submissions. Versioned policies require manager approval for all expenses, plus finance above an explicitly configured threshold. Expense approval and finance processing are distinct actions; no money moves. Conservative cancellation/withdrawal is supported before final approval/work starts. Reversal/reopening and correction/resubmission are deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and [milestone 1 notes](docs/PHASE_1_MILESTONE_1.md) for the request API boundary.
 
 Request endpoints are `POST /requests`, `GET /requests/{request_id}`, and `GET /requests`. They require a valid session cookie. Client-supplied identity headers never grant access; `requester_id` is no longer accepted in creation input. Creation derives requester and organization from the trusted session and requires a UUID `Idempotency-Key`, allowed `Origin`, and `X-CSRF-Token`. Service requests start at `SUBMITTED`; expense/leave requests start at `DRAFT`. Get/list are restricted to the requester's own organization and records. There are no update or transition endpoints.
 
@@ -121,7 +121,7 @@ No AWS deployment, external AI integration, real-user onboarding, or paid servic
 
 ## Local authentication
 
-After restoring the dependency lock and starting the stack, initialize a chosen existing synthetic account interactively:
+After starting the stack, initialize a chosen existing synthetic account interactively:
 
 ```sh
 docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml exec api uv run --no-sync python -m app.core.init_account --email '<existing-account-email>'
@@ -136,3 +136,21 @@ Cookies use `__Host-actiondesk_session` with Secure/HttpOnly/SameSite=Lax/Path=/
 Sessions expire after 30 minutes from the last persisted activity and at an immutable eight-hour absolute deadline. Touch writes happen only after five minutes: idle expiry is conservative and may occur up to five minutes earlier than the last unpersisted activity. An expired session is never revived by touching it. Login replaces only a session represented by the current cookie; other devices remain active. Disabling an account revokes all its sessions; explicit credential replacement must use the transactional password service. Rehashing the same password on login preserves other devices.
 
 Argon2 profile settings are `ACTIONDESK_AUTH_ARGON_MEMORY_KIB`, `ACTIONDESK_AUTH_ARGON_TIME_COST` and `ACTIONDESK_AUTH_ARGON_PARALLELISM` (initial defaults 65536/3/4). Auth secret, origin and session settings are API-only; the worker needs no auth secret. Redis limits login attempts only (initial defaults 20/IP/minute and 10/account/15 minutes). Redis failure returns sanitized 503 for login and does not affect existing session authentication.
+
+## Manual workflow API
+
+`POST /requests/{request_id}/transitions` requires the existing session, allowed Origin, CSRF token and a UUID `Idempotency-Key`. Its discriminated body includes `action`, `expected_version` and a nonempty `reason`. `submit` additionally requires typed `data` with `type: expense` or `type: leave`; other actions have specific fields (`assignee_id`, `resolution`, `approval_id` or `reference`). See OpenAPI for the exact schemas. Monetary values are JSON strings with at most two fractional digits; current supported currency is PKR. There is no arbitrary status PATCH.
+
+New service requests begin SUBMITTED and progress through triage, assignment, start, resolution and closure. Expense/leave drafts submit and route atomically into manager review with two version increments/events. Leave approval is terminal. Expense processing requires all required decisions and a finance actor distinct from the requester. No external payment is performed.
+
+`GET /requests` defaults to owned records. `scope=participant`, `assigned`, `triage` and `processing` expose only authorized work. `GET /approvals` paginates currently actionable snapshotted steps; future steps and ineligible candidates are excluded. Expense/leave content has no blanket admin visibility.
+
+Submission requires an explicitly selected immutable policy in `active_approval_policies`. Seeds preserve historical example definitions and do not activate them. Configure a reviewed policy version and threshold as documented in [the milestone report](docs/PHASE_1_MILESTONE_3.md); missing policy/candidates safely return 409. Do not reuse seed example amounts as universal rules.
+
+Historical seeds remain readable to their owners and unvalidated for live approval mutations. Explicit read-only assessment:
+
+```sh
+docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml exec -T api uv run --no-sync python -m app.core.validate_legacy_approvals --organization-id '<organization UUID>'
+```
+
+The report emits only request IDs and evidence blockers, returns 1 when blocked, and changes no data. It does not invent snapshots or decisions. Activating historical plans requires a separately reviewed migration/repair procedure.

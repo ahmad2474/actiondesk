@@ -14,6 +14,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -170,6 +171,7 @@ class ApprovalPolicy(TenantEntity, Base):
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
         UniqueConstraint("organization_id", "name", "version"),
+        UniqueConstraint("organization_id", "id", "request_type"),
         CheckConstraint("version > 0", name="positive_policy_version"),
     )
     name: Mapped[str] = mapped_column(String(120))
@@ -223,12 +225,24 @@ class Request(TenantEntity, Base):
             name="expense_completion_timestamp",
         ),
         CheckConstraint("version > 0", name="positive_request_version"),
+        CheckConstraint(
+            "workflow_version IS NULL OR workflow_version = 1", name="workflow_version"
+        ),
+        CheckConstraint(
+            "submission_sequence IS NULL OR submission_sequence > 1", name="submission_sequence"
+        ),
+        CheckConstraint("processed_by <> created_by", name="no_self_processing"),
         CheckConstraint("follow_up_to_id <> id", name="follow_up_not_self"),
         CheckConstraint("priority IN ('low', 'normal', 'high', 'urgent')", name="request_priority"),
         Index("ix_requests_org_status_created", "organization_id", "status", "created_at"),
         Index("ix_requests_org_assignee_status", "organization_id", "assigned_to", "status"),
         Index("ix_requests_org_due", "organization_id", "due_at"),
     )
+    workflow_version: Mapped[int | None] = mapped_column(Integer)
+    submission_sequence: Mapped[int | None] = mapped_column(Integer)
+    leave_overlap: Mapped[bool] = mapped_column(server_default=false())
+    processing_reference: Mapped[str | None] = mapped_column(String(200))
+    resolution: Mapped[str | None] = mapped_column(Text)
     type: Mapped[RequestType] = mapped_column(REQUEST_TYPE)
     title: Mapped[str] = mapped_column(String(200))
     raw_text: Mapped[str] = mapped_column(Text)
@@ -290,6 +304,7 @@ class Approval(TenantEntity, Base):
     __tablename__ = "approvals"
     __table_args__ = (
         UniqueConstraint("organization_id", "request_id", "step"),
+        UniqueConstraint("organization_id", "id", "request_id", "requester_id", "approver_role"),
         ForeignKeyConstraint(
             ["organization_id", "request_id", "requester_id"],
             ["requests.organization_id", "requests.id", "requests.created_by"],
@@ -302,18 +317,29 @@ class Approval(TenantEntity, Base):
                 "role_assignments.role",
             ],
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "closed_event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
         CheckConstraint("approver_id <> requester_id", name="no_self_approval"),
         CheckConstraint("step > 0", name="positive_approval_step"),
         CheckConstraint("approver_role IN ('manager', 'finance')", name="eligible_approval_role"),
-        CheckConstraint("status IN ('pending', 'approved', 'rejected')", name="approval_status"),
+        CheckConstraint(
+            "status IN ('pending', 'approved', 'rejected', 'cancelled')", name="approval_status"
+        ),
         Index("ix_approvals_org_approver_status", "organization_id", "approver_id", "status"),
     )
     request_id: Mapped[UUID]
     requester_id: Mapped[UUID]
     step: Mapped[int] = mapped_column(Integer)
-    approver_id: Mapped[UUID]
+    approver_id: Mapped[UUID | None]
     approver_role: Mapped[Role] = mapped_column(ROLE)
     status: Mapped[str] = mapped_column(String(20), server_default="pending")
+    closed_event_sequence: Mapped[int | None] = mapped_column(Integer)
     decision_reason: Mapped[str | None] = mapped_column(Text)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -335,3 +361,127 @@ class OutboxEvent(TenantEntity, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     attempt_count: Mapped[int] = mapped_column(Integer, server_default="0")
+
+
+class ActiveApprovalPolicy(Base):
+    __tablename__ = "active_approval_policies"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "policy_id", "request_type"],
+            [
+                "approval_policies.organization_id",
+                "approval_policies.id",
+                "approval_policies.request_type",
+            ],
+        ),
+        CheckConstraint("request_type IN ('expense', 'leave')", name="active_review_policy_type"),
+    )
+    organization_id: Mapped[UUID] = mapped_column(primary_key=True)
+    request_type: Mapped[RequestType] = mapped_column(REQUEST_TYPE, primary_key=True)
+    policy_id: Mapped[UUID]
+
+
+class ApprovalCandidate(Base):
+    __tablename__ = "approval_candidates"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "approval_id", "request_id", "requester_id", "required_role"],
+            [
+                "approvals.organization_id",
+                "approvals.id",
+                "approvals.request_id",
+                "approvals.requester_id",
+                "approvals.approver_role",
+            ],
+        ),
+        ForeignKeyConstraint(["organization_id", "user_id"], ["users.organization_id", "users.id"]),
+        CheckConstraint("user_id <> requester_id", name="candidate_not_requester"),
+        CheckConstraint(
+            "routing_source IN ('employee_manager', 'department_manager', 'finance')",
+            name="candidate_routing_source",
+        ),
+        Index("ix_candidates_org_user", "organization_id", "user_id"),
+    )
+    organization_id: Mapped[UUID] = mapped_column(primary_key=True)
+    approval_id: Mapped[UUID] = mapped_column(primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(primary_key=True)
+    request_id: Mapped[UUID]
+    requester_id: Mapped[UUID]
+    required_role: Mapped[Role] = mapped_column(ROLE)
+    routing_source: Mapped[str] = mapped_column(String(30))
+
+
+class ApprovalDecision(TenantEntity, Base):
+    __tablename__ = "approval_decisions"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "approval_id"),
+        UniqueConstraint("organization_id", "id"),
+        ForeignKeyConstraint(
+            ["organization_id", "approval_id", "request_id", "requester_id", "required_role"],
+            [
+                "approvals.organization_id",
+                "approvals.id",
+                "approvals.request_id",
+                "approvals.requester_id",
+                "approvals.approver_role",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "approval_id", "actor_id"],
+            [
+                "approval_candidates.organization_id",
+                "approval_candidates.approval_id",
+                "approval_candidates.user_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        CheckConstraint("actor_id <> requester_id", name="decision_not_requester"),
+        CheckConstraint("outcome IN ('approved', 'rejected')", name="decision_outcome"),
+    )
+    approval_id: Mapped[UUID]
+    request_id: Mapped[UUID]
+    requester_id: Mapped[UUID]
+    actor_id: Mapped[UUID]
+    required_role: Mapped[Role] = mapped_column(ROLE)
+    outcome: Mapped[str] = mapped_column(String(20))
+    reason: Mapped[str] = mapped_column(Text)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    event_sequence: Mapped[int] = mapped_column(Integer)
+
+
+class MutationReceipt(Base):
+    __tablename__ = "mutation_receipts"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "actor_id"], ["users.organization_id", "users.id"]
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "version"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "decision_id"],
+            ["approval_decisions.organization_id", "approval_decisions.id"],
+        ),
+        CheckConstraint("length(payload_hash) = 64", name="receipt_hash_length"),
+    )
+    organization_id: Mapped[UUID] = mapped_column(primary_key=True)
+    actor_id: Mapped[UUID] = mapped_column(primary_key=True)
+    idempotency_key: Mapped[UUID] = mapped_column(primary_key=True)
+    request_id: Mapped[UUID]
+    action: Mapped[str] = mapped_column(String(80))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[RequestStatus] = mapped_column(REQUEST_STATUS)
+    decision_id: Mapped[UUID | None]

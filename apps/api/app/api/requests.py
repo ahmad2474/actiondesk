@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import authenticated_principal, database_session
 from app.domain.identity import Principal
 from app.schemas.core import Problem, RequestCreate, RequestDetail, RequestPage
-from app.services import requests
+from app.schemas.workflow import Transition, TransitionRead
+from app.services import requests, transition_service
+from app.services.visibility import WorkScope
 
 
 def problem_response(description: str) -> dict[str, object]:
@@ -62,5 +64,29 @@ def list_requests(
     session: Database,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
+    scope: WorkScope = WorkScope.MINE,
 ) -> RequestPage:
-    return requests.list_requests(session, principal, limit, offset)
+    return requests.list_requests(session, principal, limit, offset, scope)
+
+
+@router.post(
+    "/{request_id}/transitions",
+    response_model=TransitionRead,
+    operation_id="transition_request",
+    description="Typed action. Idempotency-Key binds actor, request and canonical payload. "
+    "Exact retries return the original compact outcome and currently authorized detail.",
+    responses={
+        404: problem_response("Request missing or not visible"),
+        409: problem_response("Invalid edge, stale version, blocked plan or conflicting retry"),
+    },
+)
+def transition_request(
+    request_id: UUID,
+    payload: Transition,
+    principal: Identity,
+    session: Database,
+    idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
+) -> TransitionRead:
+    return transition_service.transition(
+        session, principal, request_id, payload, payload.expected_version, idempotency_key
+    )

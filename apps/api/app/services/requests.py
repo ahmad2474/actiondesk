@@ -1,4 +1,4 @@
-"""Requester-owned creation and reads. No transitions, routing or queue dispatch."""
+"""Authenticated creation and participant-scoped reads; no queue dispatch."""
 
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -7,17 +7,30 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.db.models import Department, Request, RequestEvent, RoleAssignment, User
+from app.db.models import (
+    Approval,
+    ApprovalCandidate,
+    ApprovalDecision,
+    Department,
+    Request,
+    RequestEvent,
+    RequestFields,
+    RoleAssignment,
+    User,
+)
 from app.domain.errors import DomainError
 from app.domain.identity import Principal
 from app.domain.types import UserStatus, initial_request_status
 from app.schemas.core import (
+    DecisionRead,
     RequestCreate,
     RequestDetail,
     RequestPage,
     RequestRead,
     StatusHistoryRead,
+    StepRead,
 )
+from app.services.visibility import WorkScope, scope_predicate, scoped_request
 
 
 def validate_principal(session: Session, principal: Principal) -> None:
@@ -44,19 +57,6 @@ def validate_principal(session: Session, principal: Principal) -> None:
         raise DomainError(403, "Forbidden", "An active organization role is required.")
 
 
-def owned_request(session: Session, principal: Principal, request_id: UUID) -> Request:
-    record = session.scalar(
-        select(Request).where(
-            Request.organization_id == principal.organization_id,
-            Request.created_by == principal.user_id,
-            Request.id == request_id,
-        )
-    )
-    if record is None:
-        raise DomainError(404, "Not Found", "Request not found.")
-    return record
-
-
 def request_detail(session: Session, record: Request) -> RequestDetail:
     events = session.scalars(
         select(RequestEvent)
@@ -66,8 +66,56 @@ def request_detail(session: Session, record: Request) -> RequestDetail:
         )
         .order_by(RequestEvent.sequence)
     )
+    fields = session.get(RequestFields, (record.organization_id, record.id))
+    steps = session.scalars(
+        select(Approval)
+        .where(
+            Approval.organization_id == record.organization_id,
+            Approval.request_id == record.id,
+        )
+        .order_by(Approval.step)
+    )
+    approvals = []
+    for step in steps:
+        candidates = list(
+            session.scalars(
+                select(ApprovalCandidate.user_id)
+                .where(
+                    ApprovalCandidate.organization_id == record.organization_id,
+                    ApprovalCandidate.approval_id == step.id,
+                )
+                .order_by(ApprovalCandidate.user_id)
+            )
+        )
+        decision = session.scalar(
+            select(ApprovalDecision).where(
+                ApprovalDecision.organization_id == record.organization_id,
+                ApprovalDecision.approval_id == step.id,
+            )
+        )
+        approvals.append(
+            StepRead(
+                id=step.id,
+                step=step.step,
+                approver_id=step.approver_id,
+                approver_role=step.approver_role,
+                status=step.status,
+                candidates=candidates,
+                decision=DecisionRead.model_validate(decision) if decision else None,
+            )
+        )
     return RequestDetail(
         **RequestRead.model_validate(record).model_dump(),
+        assigned_to=record.assigned_to,
+        approved_at=record.approved_at,
+        completed_at=record.completed_at,
+        processed_by=record.processed_by,
+        processing_reference=record.processing_reference,
+        resolution=record.resolution,
+        approval_policy_id=record.approval_policy_id,
+        structured_fields=fields.fields if fields else None,
+        leave_overlap=record.leave_overlap,
+        approvals=approvals,
         status_history=[StatusHistoryRead.model_validate(event) for event in events],
     )
 
@@ -98,6 +146,7 @@ def create_request(
                 raw_text=payload.raw_text,
                 status=initial_request_status(payload.type),
                 version=1,
+                workflow_version=1,
                 idempotency_key=key,
                 created_at=now,
                 updated_at=now,
@@ -149,16 +198,22 @@ def create_request(
 
 def get_request(session: Session, principal: Principal, request_id: UUID) -> RequestDetail:
     validate_principal(session, principal)
-    return request_detail(session, owned_request(session, principal, request_id))
+    return request_detail(session, scoped_request(session, principal, request_id))
 
 
-def list_requests(session: Session, principal: Principal, limit: int, offset: int) -> RequestPage:
+def list_requests(
+    session: Session,
+    principal: Principal,
+    limit: int,
+    offset: int,
+    scope: WorkScope = WorkScope.MINE,
+) -> RequestPage:
     validate_principal(session, principal)
     records = session.scalars(
         select(Request)
         .where(
             Request.organization_id == principal.organization_id,
-            Request.created_by == principal.user_id,
+            scope_predicate(principal, scope),
         )
         .order_by(Request.created_at.desc(), Request.id.desc())
         .limit(limit)

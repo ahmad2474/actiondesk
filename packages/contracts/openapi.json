@@ -1,6 +1,134 @@
 {
   "components": {
     "schemas": {
+      "ApprovalPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "limit",
+          "offset"
+        ],
+        "title": "ApprovalPage",
+        "type": "object"
+      },
+      "ApprovalRead": {
+        "properties": {
+          "approver_role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "request_id",
+          "step",
+          "approver_role",
+          "status"
+        ],
+        "title": "ApprovalRead",
+        "type": "object"
+      },
+      "Approve": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "approve",
+            "title": "Action",
+            "type": "string"
+          },
+          "approval_id": {
+            "format": "uuid",
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "approval_id"
+        ],
+        "title": "Approve",
+        "type": "object"
+      },
+      "Assign": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "assign",
+            "title": "Action",
+            "type": "string"
+          },
+          "assignee_id": {
+            "format": "uuid",
+            "title": "Assignee Id",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "assignee_id"
+        ],
+        "title": "Assign",
+        "type": "object"
+      },
       "AuthRead": {
         "additionalProperties": false,
         "properties": {
@@ -23,6 +151,113 @@
           "csrf_token"
         ],
         "title": "AuthRead",
+        "type": "object"
+      },
+      "Cancel": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "cancel",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action"
+        ],
+        "title": "Cancel",
+        "type": "object"
+      },
+      "Close": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "close",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action"
+        ],
+        "title": "Close",
+        "type": "object"
+      },
+      "DecisionRead": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "approval_id": {
+            "format": "uuid",
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "required_role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        },
+        "required": [
+          "id",
+          "approval_id",
+          "actor_id",
+          "required_role",
+          "outcome",
+          "reason",
+          "at",
+          "event_sequence"
+        ],
+        "title": "DecisionRead",
         "type": "object"
       },
       "DependencyChecks": {
@@ -60,6 +295,46 @@
         "title": "DependencyChecks",
         "type": "object"
       },
+      "ExpenseSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "const": "PKR",
+            "title": "Currency",
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Purpose",
+            "type": "string"
+          },
+          "type": {
+            "const": "expense",
+            "title": "Type",
+            "type": "string"
+          },
+          "vendor": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Vendor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "vendor",
+          "amount",
+          "currency",
+          "purpose"
+        ],
+        "title": "ExpenseSubmission",
+        "type": "object"
+      },
       "Health": {
         "properties": {
           "status": {
@@ -72,6 +347,40 @@
           "status"
         ],
         "title": "Health",
+        "type": "object"
+      },
+      "LeaveSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "leave_type": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Leave Type",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "type": {
+            "const": "leave",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "start_date",
+          "end_date",
+          "leave_type"
+        ],
+        "title": "LeaveSubmission",
         "type": "object"
       },
       "Login": {
@@ -98,6 +407,41 @@
         "title": "Login",
         "type": "object"
       },
+      "Process": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "process",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "reference": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "reference"
+        ],
+        "title": "Process",
+        "type": "object"
+      },
       "Readiness": {
         "properties": {
           "checks": {
@@ -117,6 +461,40 @@
           "checks"
         ],
         "title": "Readiness",
+        "type": "object"
+      },
+      "Reject": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "reject",
+            "title": "Action",
+            "type": "string"
+          },
+          "approval_id": {
+            "format": "uuid",
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "approval_id"
+        ],
+        "title": "Reject",
         "type": "object"
       },
       "RequestCreate": {
@@ -154,6 +532,61 @@
       },
       "RequestDetail": {
         "properties": {
+          "approval_policy_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Policy Id"
+          },
+          "approvals": {
+            "items": {
+              "$ref": "#/components/schemas/StepRead"
+            },
+            "title": "Approvals",
+            "type": "array"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -174,14 +607,53 @@
             "title": "Id",
             "type": "string"
           },
+          "leave_overlap": {
+            "default": false,
+            "title": "Leave Overlap",
+            "type": "boolean"
+          },
           "organization_id": {
             "format": "uuid",
             "title": "Organization Id",
             "type": "string"
           },
+          "processed_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processed By"
+          },
+          "processing_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Reference"
+          },
           "raw_text": {
             "title": "Raw Text",
             "type": "string"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
           },
           "status": {
             "$ref": "#/components/schemas/RequestStatus"
@@ -192,6 +664,18 @@
             },
             "title": "Status History",
             "type": "array"
+          },
+          "structured_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Fields"
           },
           "title": {
             "title": "Title",
@@ -351,6 +835,41 @@
         "title": "RequestType",
         "type": "string"
       },
+      "Resolve": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "resolve",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "resolution": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Resolution",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "resolution"
+        ],
+        "title": "Resolve",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "employee",
@@ -360,6 +879,34 @@
         ],
         "title": "Role",
         "type": "string"
+      },
+      "Start": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "start",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action"
+        ],
+        "title": "Start",
+        "type": "object"
       },
       "StatusHistoryRead": {
         "properties": {
@@ -428,6 +975,199 @@
           "at"
         ],
         "title": "StatusHistoryRead",
+        "type": "object"
+      },
+      "StepRead": {
+        "properties": {
+          "approver_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approver Id"
+          },
+          "approver_role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "candidates": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DecisionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "step",
+          "approver_id",
+          "approver_role",
+          "status",
+          "candidates",
+          "decision"
+        ],
+        "title": "StepRead",
+        "type": "object"
+      },
+      "Submit": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "submit",
+            "title": "Action",
+            "type": "string"
+          },
+          "data": {
+            "discriminator": {
+              "mapping": {
+                "expense": "#/components/schemas/ExpenseSubmission",
+                "leave": "#/components/schemas/LeaveSubmission"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ExpenseSubmission"
+              },
+              {
+                "$ref": "#/components/schemas/LeaveSubmission"
+              }
+            ],
+            "title": "Data"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "data"
+        ],
+        "title": "Submit",
+        "type": "object"
+      },
+      "TransitionOutcome": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Id"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RequestStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "action",
+          "version",
+          "status",
+          "decision_id"
+        ],
+        "title": "TransitionOutcome",
+        "type": "object"
+      },
+      "TransitionRead": {
+        "properties": {
+          "outcome": {
+            "$ref": "#/components/schemas/TransitionOutcome"
+          },
+          "request": {
+            "$ref": "#/components/schemas/RequestDetail"
+          }
+        },
+        "required": [
+          "outcome",
+          "request"
+        ],
+        "title": "TransitionRead",
+        "type": "object"
+      },
+      "Triage": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "triage",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action"
+        ],
+        "title": "Triage",
         "type": "object"
       },
       "UserRead": {
@@ -499,6 +1239,17 @@
         ],
         "title": "UserStatus",
         "type": "string"
+      },
+      "WorkScope": {
+        "enum": [
+          "mine",
+          "participant",
+          "assigned",
+          "triage",
+          "processing"
+        ],
+        "title": "WorkScope",
+        "type": "string"
       }
     }
   },
@@ -508,6 +1259,157 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/approvals": {
+      "get": {
+        "operationId": "list_approvals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Verified active identity required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Active organization role required"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid pagination"
+          }
+        },
+        "summary": "List Approvals",
+        "tags": [
+          "Approvals"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login",
@@ -1142,6 +2044,15 @@
               "title": "Offset",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/WorkScope",
+              "default": "mine"
+            }
           }
         ],
         "responses": {
@@ -1616,6 +2527,282 @@
           }
         },
         "summary": "Get Request",
+        "tags": [
+          "Requests"
+        ]
+      }
+    },
+    "/requests/{request_id}/transitions": {
+      "post": {
+        "description": "Typed action. Idempotency-Key binds actor, request and canonical payload. Exact retries return the original compact outcome and currently authorized detail.",
+        "operationId": "transition_request",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "approve": "#/components/schemas/Approve",
+                    "assign": "#/components/schemas/Assign",
+                    "cancel": "#/components/schemas/Cancel",
+                    "close": "#/components/schemas/Close",
+                    "process": "#/components/schemas/Process",
+                    "reject": "#/components/schemas/Reject",
+                    "resolve": "#/components/schemas/Resolve",
+                    "start": "#/components/schemas/Start",
+                    "submit": "#/components/schemas/Submit",
+                    "triage": "#/components/schemas/Triage"
+                  },
+                  "propertyName": "action"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Submit"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Triage"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Assign"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Start"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Resolve"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Close"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Approve"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Reject"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Process"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Cancel"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransitionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Verified active identity required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Requester or role restriction"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request missing or not visible"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid edge, stale version, blocked plan or conflicting retry"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid input or unavailable department"
+          }
+        },
+        "summary": "Transition Request",
         "tags": [
           "Requests"
         ]

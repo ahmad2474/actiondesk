@@ -1,6 +1,6 @@
 # Phase 1 milestone 2: trusted authentication
 
-Status: approved scope implemented; dependency installation/lock regeneration, real Argon2 tests and live PostgreSQL/Redis/Docker verification are blocked in this sandbox. This milestone is not declared complete. Milestone 1's successful host verification/commit/push is owner-confirmed. No commit or milestone 3 work is performed here.
+Status: complete, live auth integration verified, committed and pushed, CI green, as confirmed by the project owner before milestone 3. The implementation-pass limitations below are historical; they are not outstanding milestone 2 blockers. No authentication architecture change is authorized in milestone 3.
 
 ## Implemented architecture
 
