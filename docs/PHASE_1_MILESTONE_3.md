@@ -1,6 +1,6 @@
 # Phase 1 milestone 3: deterministic manual workflows
 
-Status: approved scope implemented and verified in unit tests and real PostgreSQL/Redis integration tests. No commit or push was performed. No milestone 4 work was started. This is not the full Phase 1 exit gate: workflow UI and correction/NEEDS_INFO revision semantics remain deferred.
+Status: complete, migrated locally, live-verified (115 PostgreSQL/Redis integration tests), committed/pushed and CI green, as confirmed by the project owner before milestone 4. The implementation-pass observations below are historical. Milestone 4 expense/leave revision semantics are separately approved and documented in PHASE_1_MILESTONE_4.md. This is not the full Phase 1 exit gate; frontend workflow UI remains deferred.
 
 ## Authority and decisions
 

@@ -121,7 +121,50 @@ class StepRead(ReadSchema):
     decision: DecisionRead | None
 
 
+class RevisionRead(ReadSchema):
+    id: UUID
+    predecessor_id: UUID | None
+    change_sequence: int | None
+    event_sequence: int
+    actor_id: UUID
+    at: datetime
+    kind: str
+    schema_version: int
+    fields: dict[str, object]
+    clarification: str
+
+
+class SubmissionRead(ReadSchema):
+    sequence: int
+    routing_sequence: int
+    revision_id: UUID
+    policy_id: UUID
+    policy_version: int
+    policy_definition: dict[str, object]
+    leave_overlap: bool
+    approvals: list[StepRead] = Field(default_factory=list)
+
+
+class ChangeRequestRead(ReadSchema):
+    event_sequence: int
+    submission_sequence: int
+    approval_id: UUID
+    actor_id: UUID
+    required_role: Role
+
+
+class RevisionPage(ReadSchema):
+    items: list[RevisionRead]
+    submissions: list[SubmissionRead]
+    change_requests: list[ChangeRequestRead]
+    limit: int
+    offset: int
+
+
 class RequestDetail(RequestRead):
+    current_submission_sequence: int | None = None
+    proposed_revision: RevisionRead | None = None
+    correction: ChangeRequestRead | None = None
     assigned_to: UUID | None = None
     approved_at: datetime | None = None
     completed_at: datetime | None = None

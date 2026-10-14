@@ -1,12 +1,12 @@
 # ActionDesk
 
-AI-assisted internal operations platform. Phase 0 provides the skeleton and local infrastructure. Phase 1 milestones 1 and 2 provide tenant-aware creation/reads and PostgreSQL opaque-cookie authentication. **Milestone 3** adds deterministic manual service, expense and leave transitions, durable approval evidence, participant visibility and scoped work queues. AI, notifications and frontend workflow UI remain deferred.
+AI-assisted internal operations platform. Phase 0 provides the skeleton and local infrastructure. Phase 1 milestones 1 and 2 provide tenant-aware creation/reads and PostgreSQL opaque-cookie authentication. **Milestone 3** adds deterministic manual service, expense and leave transitions, durable approval evidence, participant visibility and scoped work queues. **Milestone 4** adds audited expense/leave correction and current-policy resubmission with full reapproval. AI, notifications and frontend workflow UI remain deferred.
 
-**Current status:** Phase 0 and milestones 1 and 2 are owner-confirmed complete with live verification and green CI. Milestone 3 implementation and current validation results are in [the milestone report](docs/PHASE_1_MILESTONE_3.md). This work is uncommitted. Milestone 4 requires explicit approval.
+**Current status:** Phase 0 and milestones 1–3 are owner-confirmed complete, committed/pushed with live verification and green CI. Milestone 4 is owner-approved; implementation and validation are recorded in [its report](docs/PHASE_1_MILESTONE_4.md). Milestone 4 changes are uncommitted. Later milestones require explicit approval.
 
 ## Specification and decisions
 
-[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization stops at milestone 3; [the approved design](docs/PHASE_1_MILESTONE_3_DESIGN.md) records its policy decisions.
+[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization stops at milestone 4; [the approved design](docs/PHASE_1_MILESTONE_3_DESIGN.md) records its policy decisions.
 
 ## Local setup
 
@@ -51,7 +51,7 @@ Web/API/worker are separate processes in one monorepo. API and worker share the 
 
 The schema includes organizations, departments, users, a fixed role catalog, role assignments, employee managers, department managers, versioned approval policies, requests, typed fixture fields stored as JSONB, immutable request events, approvals, and an initial outbox table. Milestone 1 requires a department on each request and a matching history event for creation or status/version changes at transaction commit.
 
-Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. Approval steps preserve legacy nominees and use immutable candidate snapshots and actual-actor decisions for new submissions. Versioned policies require manager approval for all expenses, plus finance above an explicitly configured threshold. Expense approval and finance processing are distinct actions; no money moves. Conservative cancellation/withdrawal is supported before final approval/work starts. Reversal/reopening and correction/resubmission are deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and [milestone 1 notes](docs/PHASE_1_MILESTONE_1.md) for the request API boundary.
+Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. Approval steps preserve legacy nominees and use immutable candidate snapshots and actual-actor decisions for new submissions. Versioned policies require manager approval for all expenses, plus finance above an explicitly configured threshold. Expense approval and finance processing are distinct actions; no money moves. Conservative cancellation/withdrawal is supported before final approval/work starts. Expense/leave correction uses typed `request_changes`, `revise` and `resubmit` actions. Submitted fields remain frozen until audited resubmission; proposed snapshots and historical plans remain immutable. Every resubmission selects the active policy and restarts manager review. Reversal/reopening and service clarification remain deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and [milestone 1 notes](docs/PHASE_1_MILESTONE_1.md) for the request API boundary.
 
 Request endpoints are `POST /requests`, `GET /requests/{request_id}`, and `GET /requests`. They require a valid session cookie. Client-supplied identity headers never grant access; `requester_id` is no longer accepted in creation input. Creation derives requester and organization from the trusted session and requires a UUID `Idempotency-Key`, allowed `Origin`, and `X-CSRF-Token`. Service requests start at `SUBMITTED`; expense/leave requests start at `DRAFT`. Get/list are restricted to the requester's own organization and records. There are no update or transition endpoints.
 
@@ -154,3 +154,12 @@ docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml
 ```
 
 The report emits only request IDs and evidence blockers, returns 1 when blocked, and changes no data. It does not invent snapshots or decisions. Activating historical plans requires a separately reviewed migration/repair procedure.
+
+
+### Expense/leave correction API
+
+`POST /requests/{id}/transitions` retains cookie/Origin/CSRF and UUID Idempotency-Key requirements. Every action has expected_version and reason. request_changes additionally identifies the current approval_id; revise supplies the complete typed expense/leave data and nonempty clarification (maximum 20,000 characters); resubmit identifies the latest revision_id. Only eligible current-step candidates request changes; only the owner revises/resubmits. cancel permits owner withdrawal during NEEDS_INFO. No status or generic fields PATCH is available.
+
+`GET /requests/{id}/revisions?limit=20&offset=0` returns scoped snapshot history, related submissions (including immutable policy version/definition and historical approval evidence), and correction links. Request detail distinguishes structured_fields (submitted) from proposed_revision and identifies the current submission and correction. Sensitive history follows the same participant rules; old unacted nominees cannot retain access solely through nomination.
+
+Migration 0005_revisions is additive. Review it before running `make migrate` on the development database; validation uses disposable databases. Existing managed milestone 3 records are captured lazily only when trusted evidence validates. Legacy fixtures remain blocked from approval/revision activation. See [the revision design](docs/PHASE_1_MILESTONE_4_DESIGN.md) and [ADR 0004](docs/adr/0004-request-revisions.md).

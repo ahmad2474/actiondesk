@@ -16,6 +16,7 @@ from sqlalchemy import (
     UniqueConstraint,
     false,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -224,6 +225,30 @@ class Request(TenantEntity, Base):
             "type <> 'expense' OR status <> 'COMPLETED' OR completed_at IS NOT NULL",
             name="expense_completion_timestamp",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "id", "current_submission_sequence"],
+            [
+                "request_submissions.organization_id",
+                "request_submissions.request_id",
+                "request_submissions.sequence",
+            ],
+            name="fk_current_submission",
+            use_alter=True,
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "id", "proposed_revision_id"],
+            [
+                "request_revisions.organization_id",
+                "request_revisions.request_id",
+                "request_revisions.id",
+            ],
+            name="fk_proposed_revision",
+            use_alter=True,
+            deferrable=True,
+            initially="DEFERRED",
+        ),
         CheckConstraint("version > 0", name="positive_request_version"),
         CheckConstraint(
             "workflow_version IS NULL OR workflow_version = 1", name="workflow_version"
@@ -238,6 +263,8 @@ class Request(TenantEntity, Base):
         Index("ix_requests_org_assignee_status", "organization_id", "assigned_to", "status"),
         Index("ix_requests_org_due", "organization_id", "due_at"),
     )
+    current_submission_sequence: Mapped[int | None] = mapped_column(Integer)
+    proposed_revision_id: Mapped[UUID | None]
     workflow_version: Mapped[int | None] = mapped_column(Integer)
     submission_sequence: Mapped[int | None] = mapped_column(Integer)
     leave_overlap: Mapped[bool] = mapped_column(server_default=false())
@@ -302,8 +329,34 @@ class RequestEvent(TenantEntity, Base):
 
 class Approval(TenantEntity, Base):
     __tablename__ = "approvals"
+    submission_sequence: Mapped[int | None] = mapped_column(Integer)
     __table_args__ = (
-        UniqueConstraint("organization_id", "request_id", "step"),
+        UniqueConstraint(
+            "organization_id",
+            "request_id",
+            "submission_sequence",
+            "step",
+            name="uq_approval_submission_step",
+        ),
+        Index(
+            "uq_approval_original_step",
+            "organization_id",
+            "request_id",
+            "step",
+            unique=True,
+            postgresql_where=text("submission_sequence IS NULL"),
+            sqlite_where=text("submission_sequence IS NULL"),
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "submission_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+            deferrable=True,
+            initially="DEFERRED",
+        ),
         UniqueConstraint("organization_id", "id", "request_id", "requester_id", "approver_role"),
         ForeignKeyConstraint(
             ["organization_id", "request_id", "requester_id"],
@@ -485,3 +538,154 @@ class MutationReceipt(Base):
     version: Mapped[int] = mapped_column(Integer)
     status: Mapped[RequestStatus] = mapped_column(REQUEST_STATUS)
     decision_id: Mapped[UUID | None]
+
+
+class RequestRevision(TenantEntity, Base):
+    __tablename__ = "request_revisions"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "request_id", "id"),
+        UniqueConstraint("organization_id", "request_id", "event_sequence"),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id"], ["requests.organization_id", "requests.id"]
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "actor_id"], ["users.organization_id", "users.id"]
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "predecessor_id"],
+            [
+                "request_revisions.organization_id",
+                "request_revisions.request_id",
+                "request_revisions.id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "change_sequence"],
+            [
+                "request_change_requests.organization_id",
+                "request_change_requests.request_id",
+                "request_change_requests.event_sequence",
+            ],
+            use_alter=True,
+            name="fk_revision_change",
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        CheckConstraint("kind IN ('submitted', 'captured', 'proposed')", name="revision_kind"),
+        CheckConstraint("schema_version = 1", name="revision_schema"),
+        CheckConstraint("length(clarification) <= 20000", name="revision_clarification_length"),
+    )
+    request_id: Mapped[UUID]
+    predecessor_id: Mapped[UUID | None]
+    change_sequence: Mapped[int | None]
+    event_sequence: Mapped[int]
+    actor_id: Mapped[UUID]
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    kind: Mapped[str] = mapped_column(String(20))
+    schema_version: Mapped[int] = mapped_column(Integer)
+    fields: Mapped[dict[str, object]] = mapped_column(JSONB)
+    clarification: Mapped[str] = mapped_column(Text)
+
+
+class RequestSubmission(Base):
+    __tablename__ = "request_submissions"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "routing_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "revision_id"],
+            [
+                "request_revisions.organization_id",
+                "request_revisions.request_id",
+                "request_revisions.id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "policy_id"],
+            ["approval_policies.organization_id", "approval_policies.id"],
+        ),
+        CheckConstraint("routing_sequence = sequence + 1", name="submission_routing_sequence"),
+    )
+    organization_id: Mapped[UUID] = mapped_column(primary_key=True)
+    request_id: Mapped[UUID] = mapped_column(primary_key=True)
+    sequence: Mapped[int] = mapped_column(Integer, primary_key=True)
+    routing_sequence: Mapped[int] = mapped_column(Integer)
+    revision_id: Mapped[UUID]
+    policy_id: Mapped[UUID]
+    leave_overlap: Mapped[bool]
+
+
+class RequestChangeRequest(Base):
+    __tablename__ = "request_change_requests"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "request_id", "submission_sequence"),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "submission_sequence"],
+            [
+                "request_submissions.organization_id",
+                "request_submissions.request_id",
+                "request_submissions.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "approval_id", "actor_id"],
+            [
+                "approval_candidates.organization_id",
+                "approval_candidates.approval_id",
+                "approval_candidates.user_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "approval_id", "request_id", "requester_id", "required_role"],
+            [
+                "approvals.organization_id",
+                "approvals.id",
+                "approvals.request_id",
+                "approvals.requester_id",
+                "approvals.approver_role",
+            ],
+        ),
+        CheckConstraint("actor_id <> requester_id", name="correction_not_requester"),
+    )
+    organization_id: Mapped[UUID] = mapped_column(primary_key=True)
+    request_id: Mapped[UUID] = mapped_column(primary_key=True)
+    event_sequence: Mapped[int] = mapped_column(Integer, primary_key=True)
+    submission_sequence: Mapped[int] = mapped_column(Integer)
+    approval_id: Mapped[UUID]
+    actor_id: Mapped[UUID]
+    requester_id: Mapped[UUID]
+    required_role: Mapped[Role] = mapped_column(ROLE)

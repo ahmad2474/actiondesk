@@ -59,6 +59,22 @@ class Submit(TransitionBase):
     data: Submission
 
 
+class RequestChanges(TransitionBase):
+    action: Literal["request_changes"]
+    approval_id: UUID
+
+
+class Revise(TransitionBase):
+    action: Literal["revise"]
+    data: Submission
+    clarification: Description
+
+
+class Resubmit(TransitionBase):
+    action: Literal["resubmit"]
+    revision_id: UUID
+
+
 class Triage(TransitionBase):
     action: Literal["triage"]
 
@@ -101,7 +117,19 @@ class Cancel(TransitionBase):
 
 
 Transition = Annotated[
-    Submit | Triage | Assign | Start | Resolve | Close | Approve | Reject | Process | Cancel,
+    Submit
+    | Triage
+    | Assign
+    | Start
+    | Resolve
+    | Close
+    | Approve
+    | Reject
+    | Process
+    | Cancel
+    | RequestChanges
+    | Revise
+    | Resubmit,
     Field(discriminator="action"),
 ]
 transition_adapter: TypeAdapter[Transition] = TypeAdapter(Transition)

@@ -16,8 +16,11 @@ from app.db.models import (
     ApprovalPolicy,
     MutationReceipt,
     Request,
+    RequestChangeRequest,
     RequestEvent,
     RequestFields,
+    RequestRevision,
+    RequestSubmission,
     User,
 )
 from app.domain.errors import DomainError
@@ -36,7 +39,10 @@ from app.schemas.workflow import (
     LeaveSubmission,
     Process,
     Reject,
+    RequestChanges,
     Resolve,
+    Resubmit,
+    Revise,
     Start,
     Submit,
     Transition,
@@ -47,7 +53,7 @@ from app.schemas.workflow import (
 from app.services.eligibility import active_roles, candidate_eligible, department_manager
 from app.services.policies import persist_plan, resolve_plan
 from app.services.requests import request_detail, validate_principal
-from app.services.visibility import scoped_request
+from app.services.visibility import current_approval, scoped_request
 
 
 def conflict(detail: str) -> DomainError:
@@ -101,7 +107,7 @@ def validated_steps(session: Session, record: Request) -> list[Approval]:
         )
     )
     fields = session.get(RequestFields, (record.organization_id, record.id))
-    if policy is None or fields is None:
+    if policy is None or fields is None or fields.schema_version != 1:
         raise conflict("Approval plan has incomplete submission evidence.")
     try:
         definition = ApprovalPolicyDefinition.model_validate(policy.definition)
@@ -120,10 +126,62 @@ def validated_steps(session: Session, record: Request) -> list[Approval]:
             raise ValueError("Invalid request type")
     except (ValidationError, ValueError):
         raise conflict("Approval plan requires explicit validation.") from None
+    sequence = record.current_submission_sequence or record.submission_sequence
+    submitted = session.scalar(
+        select(RequestEvent).where(
+            RequestEvent.organization_id == record.organization_id,
+            RequestEvent.request_id == record.id,
+            RequestEvent.sequence == sequence,
+        )
+    )
+    routed = session.scalar(
+        select(RequestEvent).where(
+            RequestEvent.organization_id == record.organization_id,
+            RequestEvent.request_id == record.id,
+            RequestEvent.sequence == sequence + 1,
+        )
+    )
+    if (
+        submitted is None
+        or routed is None
+        or submitted.actor_id != record.created_by
+        or submitted.to_state != S.SUBMITTED
+        or (submitted.action, submitted.from_state)
+        not in {("submit", S.DRAFT), ("resubmit", S.NEEDS_INFO)}
+        or routed.actor_id != record.created_by
+        or routed.action != "route"
+        or routed.from_state != S.SUBMITTED
+        or routed.to_state != S.MANAGER_REVIEW
+    ):
+        raise conflict("Approval plan lacks trusted submission history.")
+    binding = session.get(RequestSubmission, (record.organization_id, record.id, sequence))
+    if binding is not None:
+        snapshot = session.scalar(
+            select(RequestRevision).where(
+                RequestRevision.organization_id == record.organization_id,
+                RequestRevision.request_id == record.id,
+                RequestRevision.id == binding.revision_id,
+            )
+        )
+        if (
+            snapshot is None
+            or snapshot.fields != fields.fields
+            or binding.policy_id != policy.id
+            or binding.leave_overlap != record.leave_overlap
+        ):
+            raise conflict("Submitted projection conflicts with immutable evidence.")
+    elif record.current_submission_sequence is not None:
+        raise conflict("Current submission binding is missing.")
     steps = list(
         session.scalars(
             select(Approval)
+            .join(
+                Request,
+                (Request.organization_id == Approval.organization_id)
+                & (Request.id == Approval.request_id),
+            )
             .where(
+                current_approval(),
                 Approval.organization_id == record.organization_id,
                 Approval.request_id == record.id,
             )
@@ -143,6 +201,19 @@ def validated_steps(session: Session, record: Request) -> list[Approval]:
                 )
             )
         )
+        if any(
+            candidate.request_id != record.id
+            or candidate.requester_id != record.created_by
+            or candidate.required_role != step.approver_role
+            or candidate.user_id == record.created_by
+            or (candidate.routing_source == "finance") != (step.approver_role == Role.FINANCE)
+            or (
+                candidate.routing_source == "department_manager"
+                and not definition.allow_department_fallback
+            )
+            for candidate in candidates
+        ):
+            raise conflict("Candidate snapshot conflicts with the submitted plan.")
         if not candidates:
             raise conflict("Approval candidate snapshot is missing.")
         decision = session.scalar(
@@ -157,18 +228,47 @@ def validated_steps(session: Session, record: Request) -> list[Approval]:
             raise conflict("Approval decision evidence is incomplete.")
         if step.status == "pending" and decision is not None:
             raise conflict("Approval projection conflicts with decision evidence.")
+        if decision is not None:
+            event = session.scalar(
+                select(RequestEvent).where(
+                    RequestEvent.organization_id == record.organization_id,
+                    RequestEvent.request_id == record.id,
+                    RequestEvent.sequence == decision.event_sequence,
+                )
+            )
+            if (
+                event is None
+                or decision.actor_id == record.created_by
+                or decision.actor_id not in [candidate.user_id for candidate in candidates]
+                or decision.required_role != step.approver_role
+                or decision.requester_id != record.created_by
+                or event.actor_id != decision.actor_id
+                or event.reason != decision.reason
+                or event.at != decision.at
+                or event.action != ("approve" if decision.outcome == "approved" else "reject")
+                or step.closed_event_sequence != event.sequence
+                or step.decision_reason != decision.reason
+                or step.decided_at != decision.at
+            ):
+                raise conflict("Prior decision conflicts with immutable history.")
     return steps
 
 
 def submit(
-    session: Session, actor: Principal, record: Request, action: Submit, now: datetime
+    session: Session, actor: Principal, record: Request, action: Submit | Resubmit, now: datetime
 ) -> None:
     forbid_unless(record.created_by == actor.user_id)
-    require_edge(record.type, record.status, Action.SUBMIT, S.SUBMITTED)
-    if action.data.type != record.type or record.workflow_version != 1:
+    require_edge(record.type, record.status, Action(action.action), S.SUBMITTED)
+    revision = None
+    if isinstance(action, Resubmit):
+        revision = latest_proposal(session, record, action.revision_id)
+        data = parse_fields(record, revision.fields)
+    else:
+        data = action.data
+    if data.type != record.type or record.workflow_version != 1:
         raise conflict("Submission does not match an actionable request type.")
-    policy, plan = resolve_plan(session, record, action.data)
-    if (
+    policy, plan = resolve_plan(session, record, data)
+    if isinstance(action, Submit) and (
         session.scalar(
             select(Approval.id).where(
                 Approval.organization_id == record.organization_id,
@@ -178,7 +278,8 @@ def submit(
         is not None
     ):
         raise conflict("Draft already contains an approval plan requiring validation.")
-    if isinstance(action.data, LeaveSubmission):
+    leave_overlap = False
+    if isinstance(data, LeaveSubmission):
         # Flag overlapping submitted/approved leave for the same employee, never deny it.
         existing = session.execute(
             select(RequestFields)
@@ -194,7 +295,7 @@ def submit(
                 Request.created_by == record.created_by,
                 Request.type == T.LEAVE,
                 Request.id != record.id,
-                Request.status.in_([S.SUBMITTED, S.MANAGER_REVIEW, S.APPROVED]),
+                Request.status.in_([S.SUBMITTED, S.MANAGER_REVIEW, S.APPROVED, S.NEEDS_INFO]),
             )
         ).scalars()
         for other in existing:
@@ -204,21 +305,24 @@ def submit(
                 raise conflict(
                     "Existing leave dates require validation before overlap checking."
                 ) from None
-            if (
-                other_data.start_date <= action.data.end_date
-                and action.data.start_date <= other_data.end_date
-            ):
-                record.leave_overlap = True
+            if other_data.start_date <= data.end_date and data.start_date <= other_data.end_date:
+                leave_overlap = True
     fields = session.get(RequestFields, (record.organization_id, record.id))
     if fields is None:
         fields = RequestFields(organization_id=record.organization_id, request_id=record.id)
         session.add(fields)
     fields.schema_version = 1
-    fields.fields = action.data.model_dump(mode="json")
+    fields.fields = data.model_dump(mode="json")
+    record.leave_overlap = leave_overlap
     record.approval_policy_id = policy.id
-    record.submission_sequence = record.version + 1
+    sequence = record.version + 1
+    if record.submission_sequence is None:
+        record.submission_sequence = sequence
+    record.current_submission_sequence = sequence
+    record.proposed_revision_id = None
+    session.flush()  # Publish the new plan identity before inserting its guarded steps.
     persist_plan(session, record, plan)
-    advance(session, actor, record, Action.SUBMIT, S.SUBMITTED, action.reason, now)
+    advance(session, actor, record, Action(action.action), S.SUBMITTED, action.reason, now)
     advance(
         session,
         actor,
@@ -228,11 +332,45 @@ def submit(
         f"Policy {policy.id} version {policy.version}: manager review",
         now,
     )
+    if revision is None:
+        revision = RequestRevision(
+            id=uuid4(),
+            organization_id=record.organization_id,
+            request_id=record.id,
+            event_sequence=sequence,
+            actor_id=actor.user_id,
+            at=now,
+            kind="submitted",
+            schema_version=1,
+            fields=fields.fields,
+            clarification="",
+        )
+        session.add(revision)
+        session.flush()
+    session.add(
+        RequestSubmission(
+            organization_id=record.organization_id,
+            request_id=record.id,
+            sequence=sequence,
+            routing_sequence=sequence + 1,
+            revision_id=revision.id,
+            policy_id=policy.id,
+            leave_overlap=record.leave_overlap,
+        )
+    )
+    session.flush()
 
 
 def close_pending(session: Session, record: Request) -> None:
     for step in session.scalars(
-        select(Approval).where(
+        select(Approval)
+        .join(
+            Request,
+            (Request.organization_id == Approval.organization_id)
+            & (Request.id == Approval.request_id),
+        )
+        .where(
+            current_approval(),
             Approval.organization_id == record.organization_id,
             Approval.request_id == record.id,
             Approval.status == "pending",
@@ -242,9 +380,13 @@ def close_pending(session: Session, record: Request) -> None:
         step.closed_event_sequence = record.version
 
 
-def decide(
-    session: Session, actor: Principal, record: Request, action: Approve | Reject, now: datetime
-) -> UUID:
+def actionable_step(
+    session: Session,
+    actor: Principal,
+    record: Request,
+    action: Approve | Reject | RequestChanges,
+    now: datetime,
+) -> tuple[list[Approval], Approval]:
     forbid_unless(actor.user_id != record.created_by)
     steps = validated_steps(session, record)
     step = next((item for item in steps if item.status == "pending"), None)
@@ -274,6 +416,13 @@ def decide(
     if not eligible:
         raise conflict("All snapshotted candidates are ineligible; approval is blocked.")
     forbid_unless(actor.user_id in eligible)
+    return steps, step
+
+
+def decide(
+    session: Session, actor: Principal, record: Request, action: Approve | Reject, now: datetime
+) -> UUID:
+    steps, step = actionable_step(session, actor, record, action, now)
     outcome = "approved" if isinstance(action, Approve) else "rejected"
     target = (
         S.REJECTED
@@ -306,6 +455,165 @@ def decide(
     return decision.id
 
 
+def current_sequence(record: Request) -> int:
+    sequence = record.current_submission_sequence or record.submission_sequence
+    if sequence is None:
+        raise conflict("Submission evidence is missing.")
+    return sequence
+
+
+def parse_fields(record: Request, fields: dict[str, object]) -> ExpenseSubmission | LeaveSubmission:
+    try:
+        return (
+            ExpenseSubmission.model_validate(fields)
+            if record.type == T.EXPENSE
+            else LeaveSubmission.model_validate(fields)
+        )
+    except ValidationError:
+        raise conflict("Revision fields require validation.") from None
+
+
+def correction(session: Session, record: Request) -> RequestChangeRequest:
+    if record.status != S.NEEDS_INFO:
+        raise conflict("Correction requires NEEDS_INFO.")
+    result = session.scalar(
+        select(RequestChangeRequest).where(
+            RequestChangeRequest.organization_id == record.organization_id,
+            RequestChangeRequest.request_id == record.id,
+            RequestChangeRequest.submission_sequence == current_sequence(record),
+        )
+    )
+    if result is None:
+        raise conflict("Correction evidence is missing.")
+    return result
+
+
+def latest_proposal(session: Session, record: Request, revision_id: UUID) -> RequestRevision:
+    change = correction(session, record)
+    proposal = session.scalar(
+        select(RequestRevision).where(
+            RequestRevision.organization_id == record.organization_id,
+            RequestRevision.request_id == record.id,
+            RequestRevision.id == revision_id,
+            RequestRevision.kind == "proposed",
+            RequestRevision.change_sequence == change.event_sequence,
+        )
+    )
+    if proposal is None or record.proposed_revision_id != revision_id:
+        raise conflict("Resubmission requires the latest revision for this correction cycle.")
+    return proposal
+
+
+def capture_submission(session: Session, actor: Principal, record: Request, now: datetime) -> None:
+    sequence = current_sequence(record)
+    if session.get(RequestSubmission, (record.organization_id, record.id, sequence)) is not None:
+        return
+    # Capture only after validating immutable original submission and actual decision evidence.
+    validated_steps(session, record)
+    submitted = session.scalar(
+        select(RequestEvent).where(
+            RequestEvent.organization_id == record.organization_id,
+            RequestEvent.request_id == record.id,
+            RequestEvent.sequence == sequence,
+        )
+    )
+    routed = session.scalar(
+        select(RequestEvent).where(
+            RequestEvent.organization_id == record.organization_id,
+            RequestEvent.request_id == record.id,
+            RequestEvent.sequence == sequence + 1,
+        )
+    )
+    if (
+        submitted is None
+        or routed is None
+        or submitted.action != "submit"
+        or submitted.actor_id != record.created_by
+        or submitted.from_state != S.DRAFT
+        or submitted.to_state != S.SUBMITTED
+        or routed.action != "route"
+        or routed.actor_id != record.created_by
+        or routed.from_state != S.SUBMITTED
+        or routed.to_state != S.MANAGER_REVIEW
+        or record.approval_policy_id is None
+    ):
+        raise conflict("Existing submission lacks trusted history; capture is blocked.")
+    fields = session.get(RequestFields, (record.organization_id, record.id))
+    if fields is None or fields.schema_version != 1:
+        raise conflict("Existing submission fields require validation.")
+    snapshot = RequestRevision(
+        id=uuid4(),
+        organization_id=record.organization_id,
+        request_id=record.id,
+        event_sequence=record.version + 1,
+        actor_id=actor.user_id,
+        at=now,
+        kind="captured",
+        schema_version=1,
+        fields=fields.fields,
+        clarification="",
+    )
+    session.add(snapshot)
+    session.flush()
+    session.add(
+        RequestSubmission(
+            organization_id=record.organization_id,
+            request_id=record.id,
+            sequence=sequence,
+            routing_sequence=sequence + 1,
+            revision_id=snapshot.id,
+            policy_id=record.approval_policy_id,
+            leave_overlap=record.leave_overlap,
+        )
+    )
+    session.flush()
+
+
+def revise(
+    session: Session, actor: Principal, record: Request, action: Revise, now: datetime
+) -> None:
+    forbid_unless(record.created_by == actor.user_id)
+    require_edge(record.type, record.status, Action.REVISE, S.NEEDS_INFO)
+    change = correction(session, record)
+    if action.data.type != record.type:
+        raise conflict("Revision does not match the request type.")
+    submission = session.get(
+        RequestSubmission, (record.organization_id, record.id, current_sequence(record))
+    )
+    if submission is None:
+        raise conflict("Submission snapshot is missing.")
+    previous_id = record.proposed_revision_id or submission.revision_id
+    previous = session.scalar(
+        select(RequestRevision).where(
+            RequestRevision.organization_id == record.organization_id,
+            RequestRevision.request_id == record.id,
+            RequestRevision.id == previous_id,
+        )
+    )
+    if previous is None:
+        raise conflict("Previous revision is missing.")
+    fields = action.data.model_dump(mode="json")
+    if previous.fields == fields and previous.clarification == action.clarification:
+        raise conflict("Revision makes no change.")
+    revision = RequestRevision(
+        id=uuid4(),
+        organization_id=record.organization_id,
+        request_id=record.id,
+        predecessor_id=previous.id,
+        change_sequence=change.event_sequence,
+        event_sequence=record.version + 1,
+        actor_id=actor.user_id,
+        at=now,
+        kind="proposed",
+        schema_version=1,
+        fields=fields,
+        clarification=action.clarification,
+    )
+    session.add(revision)
+    record.proposed_revision_id = revision.id
+    advance(session, actor, record, Action.REVISE, S.NEEDS_INFO, action.reason, now)
+
+
 def apply(
     session: Session,
     actor: Principal,
@@ -314,8 +622,28 @@ def apply(
     roles: frozenset[Role],
     now: datetime,
 ) -> UUID | None:
-    if isinstance(action, Submit):
+    if isinstance(action, (Submit, Resubmit)):
         submit(session, actor, record, action, now)
+    elif isinstance(action, RequestChanges):
+        _, step = actionable_step(session, actor, record, action, now)
+        capture_submission(session, actor, record, now)
+        advance(session, actor, record, Action.REQUEST_CHANGES, S.NEEDS_INFO, action.reason, now)
+        session.add(
+            RequestChangeRequest(
+                organization_id=record.organization_id,
+                request_id=record.id,
+                event_sequence=record.version,
+                submission_sequence=current_sequence(record),
+                approval_id=step.id,
+                actor_id=actor.user_id,
+                requester_id=record.created_by,
+                required_role=step.approver_role,
+            )
+        )
+        session.flush()
+        close_pending(session, record)
+    elif isinstance(action, Revise):
+        revise(session, actor, record, action, now)
     elif isinstance(action, (Approve, Reject)):
         return decide(session, actor, record, action, now)
     elif isinstance(action, Process):

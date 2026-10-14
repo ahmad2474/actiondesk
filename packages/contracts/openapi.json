@@ -181,6 +181,40 @@
         "title": "Cancel",
         "type": "object"
       },
+      "ChangeRequestRead": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "approval_id": {
+            "format": "uuid",
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "required_role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "submission_sequence": {
+            "title": "Submission Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "event_sequence",
+          "submission_sequence",
+          "approval_id",
+          "actor_id",
+          "required_role"
+        ],
+        "title": "ChangeRequestRead",
+        "type": "object"
+      },
       "Close": {
         "additionalProperties": false,
         "properties": {
@@ -497,6 +531,40 @@
         "title": "Reject",
         "type": "object"
       },
+      "RequestChanges": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "request_changes",
+            "title": "Action",
+            "type": "string"
+          },
+          "approval_id": {
+            "format": "uuid",
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "approval_id"
+        ],
+        "title": "RequestChanges",
+        "type": "object"
+      },
       "RequestCreate": {
         "additionalProperties": false,
         "properties": {
@@ -587,6 +655,16 @@
             ],
             "title": "Completed At"
           },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChangeRequestRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -596,6 +674,17 @@
             "format": "uuid",
             "title": "Created By",
             "type": "string"
+          },
+          "current_submission_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Submission Sequence"
           },
           "department_id": {
             "format": "uuid",
@@ -639,6 +728,16 @@
               }
             ],
             "title": "Processing Reference"
+          },
+          "proposed_revision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RevisionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "raw_text": {
             "title": "Raw Text",
@@ -870,6 +969,213 @@
         "title": "Resolve",
         "type": "object"
       },
+      "Resubmit": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "resubmit",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "revision_id"
+        ],
+        "title": "Resubmit",
+        "type": "object"
+      },
+      "Revise": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "revise",
+            "title": "Action",
+            "type": "string"
+          },
+          "clarification": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Clarification",
+            "type": "string"
+          },
+          "data": {
+            "discriminator": {
+              "mapping": {
+                "expense": "#/components/schemas/ExpenseSubmission",
+                "leave": "#/components/schemas/LeaveSubmission"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ExpenseSubmission"
+              },
+              {
+                "$ref": "#/components/schemas/LeaveSubmission"
+              }
+            ],
+            "title": "Data"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "data",
+          "clarification"
+        ],
+        "title": "Revise",
+        "type": "object"
+      },
+      "RevisionPage": {
+        "properties": {
+          "change_requests": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeRequestRead"
+            },
+            "title": "Change Requests",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RevisionRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "submissions": {
+            "items": {
+              "$ref": "#/components/schemas/SubmissionRead"
+            },
+            "title": "Submissions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "submissions",
+          "change_requests",
+          "limit",
+          "offset"
+        ],
+        "title": "RevisionPage",
+        "type": "object"
+      },
+      "RevisionRead": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "change_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Sequence"
+          },
+          "clarification": {
+            "title": "Clarification",
+            "type": "string"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "fields": {
+            "additionalProperties": true,
+            "title": "Fields",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "predecessor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predecessor Id"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "predecessor_id",
+          "change_sequence",
+          "event_sequence",
+          "actor_id",
+          "at",
+          "kind",
+          "schema_version",
+          "fields",
+          "clarification"
+        ],
+        "title": "RevisionRead",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "employee",
@@ -1036,6 +1342,59 @@
           "decision"
         ],
         "title": "StepRead",
+        "type": "object"
+      },
+      "SubmissionRead": {
+        "properties": {
+          "approvals": {
+            "items": {
+              "$ref": "#/components/schemas/StepRead"
+            },
+            "title": "Approvals",
+            "type": "array"
+          },
+          "leave_overlap": {
+            "title": "Leave Overlap",
+            "type": "boolean"
+          },
+          "policy_definition": {
+            "additionalProperties": true,
+            "title": "Policy Definition",
+            "type": "object"
+          },
+          "policy_id": {
+            "format": "uuid",
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "integer"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "routing_sequence": {
+            "title": "Routing Sequence",
+            "type": "integer"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sequence",
+          "routing_sequence",
+          "revision_id",
+          "policy_id",
+          "policy_version",
+          "policy_definition",
+          "leave_overlap"
+        ],
+        "title": "SubmissionRead",
         "type": "object"
       },
       "Submit": {
@@ -2532,6 +2891,202 @@
         ]
       }
     },
+    "/requests/{request_id}/revisions": {
+      "get": {
+        "operationId": "list_request_revisions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevisionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Verified active identity required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Requester or role restriction"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request missing or not visible"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid input or unavailable department"
+          }
+        },
+        "summary": "List Request Revisions",
+        "tags": [
+          "Requests"
+        ]
+      }
+    },
     "/requests/{request_id}/transitions": {
       "post": {
         "description": "Typed action. Idempotency-Key binds actor, request and canonical payload. Exact retries return the original compact outcome and currently authorized detail.",
@@ -2570,7 +3125,10 @@
                     "close": "#/components/schemas/Close",
                     "process": "#/components/schemas/Process",
                     "reject": "#/components/schemas/Reject",
+                    "request_changes": "#/components/schemas/RequestChanges",
                     "resolve": "#/components/schemas/Resolve",
+                    "resubmit": "#/components/schemas/Resubmit",
+                    "revise": "#/components/schemas/Revise",
                     "start": "#/components/schemas/Start",
                     "submit": "#/components/schemas/Submit",
                     "triage": "#/components/schemas/Triage"
@@ -2607,6 +3165,15 @@
                   },
                   {
                     "$ref": "#/components/schemas/Cancel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RequestChanges"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Revise"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Resubmit"
                   }
                 ],
                 "title": "Payload"

@@ -137,6 +137,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requests/{request_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Request Revisions */
+        get: operations["list_request_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requests/{request_id}/transitions": {
         parameters: {
             query?: never;
@@ -244,6 +261,24 @@ export interface components {
             expected_version: number;
             /** Reason */
             reason: string;
+        };
+        /** ChangeRequestRead */
+        ChangeRequestRead: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * Approval Id
+             * Format: uuid
+             */
+            approval_id: string;
+            /** Event Sequence */
+            event_sequence: number;
+            required_role: components["schemas"]["Role"];
+            /** Submission Sequence */
+            submission_sequence: number;
         };
         /** Close */
         Close: {
@@ -402,6 +437,23 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** RequestChanges */
+        RequestChanges: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "request_changes";
+            /**
+             * Approval Id
+             * Format: uuid
+             */
+            approval_id: string;
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+        };
         /** RequestCreate */
         RequestCreate: {
             /**
@@ -427,6 +479,7 @@ export interface components {
             assigned_to?: string | null;
             /** Completed At */
             completed_at?: string | null;
+            correction?: components["schemas"]["ChangeRequestRead"] | null;
             /**
              * Created At
              * Format: date-time
@@ -437,6 +490,8 @@ export interface components {
              * Format: uuid
              */
             created_by: string;
+            /** Current Submission Sequence */
+            current_submission_sequence?: number | null;
             /**
              * Department Id
              * Format: uuid
@@ -461,6 +516,7 @@ export interface components {
             processed_by?: string | null;
             /** Processing Reference */
             processing_reference?: string | null;
+            proposed_revision?: components["schemas"]["RevisionRead"] | null;
             /** Raw Text */
             raw_text: string;
             /** Resolution */
@@ -557,6 +613,86 @@ export interface components {
             /** Resolution */
             resolution: string;
         };
+        /** Resubmit */
+        Resubmit: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "resubmit";
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+        };
+        /** Revise */
+        Revise: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "revise";
+            /** Clarification */
+            clarification: string;
+            /** Data */
+            data: components["schemas"]["ExpenseSubmission"] | components["schemas"]["LeaveSubmission"];
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+        };
+        /** RevisionPage */
+        RevisionPage: {
+            /** Change Requests */
+            change_requests: components["schemas"]["ChangeRequestRead"][];
+            /** Items */
+            items: components["schemas"]["RevisionRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Submissions */
+            submissions: components["schemas"]["SubmissionRead"][];
+        };
+        /** RevisionRead */
+        RevisionRead: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Change Sequence */
+            change_sequence: number | null;
+            /** Clarification */
+            clarification: string;
+            /** Event Sequence */
+            event_sequence: number;
+            /** Fields */
+            fields: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Predecessor Id */
+            predecessor_id: string | null;
+            /** Schema Version */
+            schema_version: number;
+        };
         /**
          * Role
          * @enum {string}
@@ -619,6 +755,33 @@ export interface components {
             status: string;
             /** Step */
             step: number;
+        };
+        /** SubmissionRead */
+        SubmissionRead: {
+            /** Approvals */
+            approvals?: components["schemas"]["StepRead"][];
+            /** Leave Overlap */
+            leave_overlap: boolean;
+            /** Policy Definition */
+            policy_definition: {
+                [key: string]: unknown;
+            };
+            /**
+             * Policy Id
+             * Format: uuid
+             */
+            policy_id: string;
+            /** Policy Version */
+            policy_version: number;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /** Routing Sequence */
+            routing_sequence: number;
+            /** Sequence */
+            sequence: number;
         };
         /** Submit */
         Submit: {
@@ -1506,6 +1669,115 @@ export interface operations {
             };
         };
     };
+    list_request_revisions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionPage"];
+                };
+            };
+            /** @description Verified active identity required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Requester or role restriction */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Request missing or not visible */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Invalid input or unavailable department */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
     transition_request: {
         parameters: {
             query?: never;
@@ -1519,7 +1791,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Submit"] | components["schemas"]["Triage"] | components["schemas"]["Assign"] | components["schemas"]["Start"] | components["schemas"]["Resolve"] | components["schemas"]["Close"] | components["schemas"]["Approve"] | components["schemas"]["Reject"] | components["schemas"]["Process"] | components["schemas"]["Cancel"];
+                "application/json": components["schemas"]["Submit"] | components["schemas"]["Triage"] | components["schemas"]["Assign"] | components["schemas"]["Start"] | components["schemas"]["Resolve"] | components["schemas"]["Close"] | components["schemas"]["Approve"] | components["schemas"]["Reject"] | components["schemas"]["Process"] | components["schemas"]["Cancel"] | components["schemas"]["RequestChanges"] | components["schemas"]["Revise"] | components["schemas"]["Resubmit"];
             };
         };
         responses: {

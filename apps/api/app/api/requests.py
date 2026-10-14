@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import authenticated_principal, database_session
 from app.domain.identity import Principal
-from app.schemas.core import Problem, RequestCreate, RequestDetail, RequestPage
+from app.schemas.core import Problem, RequestCreate, RequestDetail, RequestPage, RevisionPage
 from app.schemas.workflow import Transition, TransitionRead
 from app.services import requests, transition_service
 from app.services.visibility import WorkScope
@@ -90,3 +90,19 @@ def transition_request(
     return transition_service.transition(
         session, principal, request_id, payload, payload.expected_version, idempotency_key
     )
+
+
+@router.get(
+    "/{request_id}/revisions",
+    response_model=RevisionPage,
+    operation_id="list_request_revisions",
+    responses={404: problem_response("Request missing or not visible")},
+)
+def list_request_revisions(
+    request_id: UUID,
+    principal: Identity,
+    session: Database,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> RevisionPage:
+    return requests.list_revisions(session, principal, request_id, limit, offset)

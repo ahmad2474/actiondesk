@@ -4,7 +4,7 @@
 
 - Authoritative specification: `docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf`, especially Sections 16.1-16.7. Use `docs/ActionDesk_PRD_Technical_Architecture_v1.pdf` only as non-conflicting background.
 - Follow explicit user instructions. Do not infer policy from incomplete PDF extraction; stop and report extraction failure.
-- Phase 0 and Phase 1 milestones 1 and 2 are complete, live-verified, committed/pushed and CI green as confirmed by the project owner. Milestone 3 is explicitly authorized: deterministic manual transitions, immutable approval evidence, configured versioned policies, participant-scoped reads/work queues, and legacy-plan validation. Authentication and Redis/Celery behavior stay unchanged. No milestone 4, AI, notifications, frontend workflow UI, deployment changes, or commits are authorized.
+- Phase 0 and Phase 1 milestones 1–3 are complete, live-verified, committed/pushed and CI green as confirmed by the project owner. Milestone 4 is explicitly authorized: expense/leave correction, immutable revision/submission evidence, current-policy resubmission and full reapproval. Authentication and Redis/Celery behavior stay unchanged. No next milestone, AI, notifications, frontend workflow UI, deployment changes, or commits are authorized.
 - `docs/PHASE_0_PLAN.md` records proposed implementation choices and open decisions. Proposals are not approved requirements. When approval arrives, update the recorded status and decisions.
 
 ## Architecture and scope
@@ -101,14 +101,27 @@
 
 - Before changing code, identify the authorized phase and relevant PRD sections. Record unresolved policy questions rather than inventing rules.
 - Keep changes focused, reviewable, and accompanied by relevant documentation and validation. Do not broaden scope or install speculative future dependencies.
-- Stop at Phase 1 milestone 3. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
+- Stop at Phase 1 milestone 4. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
 
 ## Approved milestone 3 policy
 
-- Service cancellation stops before work starts; assigned cancellation requires department manager/admin review. Leave APPROVED is terminal. Reversal/reopen, NEEDS_INFO/correction/resubmission, delegation and reassignment are deferred.
+- Service cancellation stops before work starts; assigned cancellation requires department manager/admin review. Leave APPROVED is terminal. Reversal/reopen, service clarification, delegation and reassignment are deferred. Expense/leave correction is authorized by the milestone 4 decisions below.
 - Every expense requires manager approval, with finance approval strictly above an explicitly configured policy threshold. No universal numeric threshold or default active policy is selected.
 - Prefer a valid explicit employee manager; department fallback requires policy permission. Multiple eligible managers are one-of candidates. Missing candidates block submission without partial writes.
 - Snapshot candidates at submission and recheck current role, active user, tenant and recorded relationship at decision time. Never silently substitute candidates. Admin alone cannot approve expense/leave.
 - A non-requester holding the required roles may separately perform manager approval, finance approval and processing. Each creates separate durable evidence. Requester self-approval/processing remains forbidden.
 - Submitted authoritative expense/leave fields and policy/plan evidence are frozen. Participant scopes apply to detail/history, actionable approvals and service/finance work queues; admin has no blanket sensitive-content visibility.
 - Legacy nominees/history are preserved. Read-only explicit assessment reports missing evidence; unvalidated historical records cannot enter live approval/processing paths.
+
+
+## Approved milestone 4 policy
+
+- Expense and leave only. Current actionable snapshotted candidates alone may request changes, subject to current tenant, active-user, role and recorded relationship checks; requester self-review and admin-only authority remain forbidden.
+- NEEDS_INFO suspends review. Pending steps close as cancelled linked to immutable correction evidence, distinct from rejection/withdrawal. Existing decisions remain historical only. Owners may withdraw while NEEDS_INFO.
+- Only the requester revises/resubmits. Complete typed snapshots use expense vendor/amount/currency/purpose or leave dates/type, plus bounded clarification. Original raw_text stays immutable; no arbitrary patches.
+- Proposed snapshots stay separate from the submitted projection. request_revisions, request_submissions and request_change_requests are append-only. Each revision has a same-state event and one version increment.
+- Resubmission requires the latest proposal from the current correction cycle, selects the active immutable policy and resolves fresh current candidates. Every resubmission requires full manager/optional-finance reapproval, including explanation-only changes. Missing policy/candidates returns 409 with no partial writes.
+- All approval ordering, queues, decisions and processing/completion checks scope to the current submission sequence. Historical steps/candidates never satisfy a new plan.
+- Superseded unacted candidates lose nomination-only visibility; actual decision/correction authors retain only active-role audit visibility. No blanket sensitive-content admin scope.
+- Additive migration preserves original evidence. Lazy capture of managed milestone 3 submissions requires consistent existing trusted evidence, records the actual capture actor/time and never fabricates historical facts. Unvalidated legacy records stay blocked.
+- Exact retries preserve the original outcome without duplicate snapshots, plans, closures or events; current authentication/visibility still apply. No commit or next milestone is authorized.

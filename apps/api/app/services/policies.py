@@ -133,6 +133,7 @@ def persist_plan(session: Session, record: Request, plan: list[PlannedStep]) -> 
             request_id=record.id,
             requester_id=record.created_by,
             step=position,
+            submission_sequence=record.current_submission_sequence,
             approver_role=step.role,
             approver_id=None,
             status="pending",

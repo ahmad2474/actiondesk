@@ -127,8 +127,66 @@ def test_openapi_actions_and_money_are_discriminated() -> None:
         "content"
     ]["application/json"]["schema"]
     assert body["discriminator"]["propertyName"] == "action"
-    assert len(body["oneOf"]) == 10
+    assert len(body["oneOf"]) == 13
     assert (
         document["components"]["schemas"]["ExpenseSubmission"]["properties"]["amount"]["type"]
         == "string"
     )
+
+
+def test_revision_http_contract(client: TestClient, api_world: World) -> None:
+    record = api_world.submit(amount="100.01")
+    url = f"/requests/{record.id}/transitions"
+    body: dict[str, object] = {
+        "action": "request_changes",
+        "expected_version": record.version,
+        "reason": "Explain the vendor",
+        "approval_id": str(record.approvals[0].id),
+    }
+    app.dependency_overrides[authenticated_principal] = lambda: api_world.manager
+    result = client.post(url, json=body, headers={"Idempotency-Key": str(uuid4())})
+    assert result.status_code == 200, result.text
+    assert result.json()["request"]["correction"]["approval_id"] == str(record.approvals[0].id)
+    assert client.get("/approvals").json()["items"] == []
+    version = result.json()["request"]["version"]
+    app.dependency_overrides[authenticated_principal] = lambda: api_world.owner
+    body = {
+        "action": "revise",
+        "expected_version": version,
+        "reason": "Corrected vendor",
+        "data": {**submission(), "vendor": "Revised vendor"},
+        "clarification": "Confirmed vendor identity",
+    }
+    for invalid in (
+        {**body, "status": "APPROVED"},
+        {**body, "raw_text": "Rewrite intake"},
+        {**body, "data": {**submission(), "department_id": str(uuid4())}},
+        {**body, "clarification": " "},
+        {**body, "clarification": "x" * 20001},
+        {**body, "data": {**submission(), "amount": 1.5}},
+    ):
+        response = client.post(url, json=invalid, headers={"Idempotency-Key": str(uuid4())})
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Request input is invalid."
+    result = client.post(url, json=body, headers={"Idempotency-Key": str(uuid4())})
+    assert result.status_code == 200, result.text
+    detail = result.json()["request"]
+    assert detail["structured_fields"]["vendor"] == "Synthetic vendor"
+    assert detail["proposed_revision"]["fields"]["vendor"] == "Revised vendor"
+    body = {
+        "action": "resubmit",
+        "expected_version": detail["version"],
+        "reason": "Ready for review",
+        "revision_id": detail["proposed_revision"]["id"],
+    }
+    result = client.post(url, json=body, headers={"Idempotency-Key": str(uuid4())})
+    assert result.status_code == 200, result.text
+    assert result.json()["request"]["structured_fields"]["vendor"] == "Revised vendor"
+    history = client.get(f"/requests/{record.id}/revisions?limit=1").json()
+    assert len(history["items"]) == 1 and history["submissions"][0]["sequence"] == 2
+    assert (
+        client.get(f"/requests/{record.id}/revisions?offset=1").json()["items"][0]["kind"]
+        == "proposed"
+    )
+    app.dependency_overrides[authenticated_principal] = lambda: api_world.admin
+    assert client.get(f"/requests/{record.id}/revisions").status_code == 404

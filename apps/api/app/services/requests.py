@@ -11,10 +11,14 @@ from app.db.models import (
     Approval,
     ApprovalCandidate,
     ApprovalDecision,
+    ApprovalPolicy,
     Department,
     Request,
+    RequestChangeRequest,
     RequestEvent,
     RequestFields,
+    RequestRevision,
+    RequestSubmission,
     RoleAssignment,
     User,
 )
@@ -22,15 +26,19 @@ from app.domain.errors import DomainError
 from app.domain.identity import Principal
 from app.domain.types import UserStatus, initial_request_status
 from app.schemas.core import (
+    ChangeRequestRead,
     DecisionRead,
     RequestCreate,
     RequestDetail,
     RequestPage,
     RequestRead,
+    RevisionPage,
+    RevisionRead,
     StatusHistoryRead,
     StepRead,
+    SubmissionRead,
 )
-from app.services.visibility import WorkScope, scope_predicate, scoped_request
+from app.services.visibility import WorkScope, current_approval, scope_predicate, scoped_request
 
 
 def validate_principal(session: Session, principal: Principal) -> None:
@@ -67,45 +75,36 @@ def request_detail(session: Session, record: Request) -> RequestDetail:
         .order_by(RequestEvent.sequence)
     )
     fields = session.get(RequestFields, (record.organization_id, record.id))
-    steps = session.scalars(
-        select(Approval)
-        .where(
-            Approval.organization_id == record.organization_id,
-            Approval.request_id == record.id,
+    approvals = approval_reads(session, record)
+    proposed = (
+        session.scalar(
+            select(RequestRevision).where(
+                RequestRevision.organization_id == record.organization_id,
+                RequestRevision.request_id == record.id,
+                RequestRevision.id == record.proposed_revision_id,
+            )
         )
-        .order_by(Approval.step)
+        if record.proposed_revision_id
+        else None
     )
-    approvals = []
-    for step in steps:
-        candidates = list(
-            session.scalars(
-                select(ApprovalCandidate.user_id)
-                .where(
-                    ApprovalCandidate.organization_id == record.organization_id,
-                    ApprovalCandidate.approval_id == step.id,
-                )
-                .order_by(ApprovalCandidate.user_id)
+    change = (
+        session.scalar(
+            select(RequestChangeRequest).where(
+                RequestChangeRequest.organization_id == record.organization_id,
+                RequestChangeRequest.request_id == record.id,
+                RequestChangeRequest.submission_sequence
+                == (record.current_submission_sequence or record.submission_sequence),
             )
         )
-        decision = session.scalar(
-            select(ApprovalDecision).where(
-                ApprovalDecision.organization_id == record.organization_id,
-                ApprovalDecision.approval_id == step.id,
-            )
-        )
-        approvals.append(
-            StepRead(
-                id=step.id,
-                step=step.step,
-                approver_id=step.approver_id,
-                approver_role=step.approver_role,
-                status=step.status,
-                candidates=candidates,
-                decision=DecisionRead.model_validate(decision) if decision else None,
-            )
-        )
+        if record.status == "NEEDS_INFO"
+        else None
+    )
     return RequestDetail(
         **RequestRead.model_validate(record).model_dump(),
+        current_submission_sequence=record.current_submission_sequence
+        or record.submission_sequence,
+        proposed_revision=RevisionRead.model_validate(proposed) if proposed else None,
+        correction=ChangeRequestRead.model_validate(change) if change else None,
         assigned_to=record.assigned_to,
         approved_at=record.approved_at,
         completed_at=record.completed_at,
@@ -221,4 +220,138 @@ def list_requests(
     )
     return RequestPage(
         items=[RequestRead.model_validate(record) for record in records], limit=limit, offset=offset
+    )
+
+
+def approval_reads(
+    session: Session, record: Request, sequence: int | None = None
+) -> list[StepRead]:
+    steps = session.scalars(
+        select(Approval)
+        .join(
+            Request,
+            (Request.organization_id == Approval.organization_id)
+            & (Request.id == Approval.request_id),
+        )
+        .where(
+            Approval.organization_id == record.organization_id,
+            Approval.request_id == record.id,
+            current_approval()
+            if sequence is None
+            else (Approval.submission_sequence == sequence)
+            | (
+                (Approval.submission_sequence.is_(None)) & (Request.submission_sequence == sequence)
+            ),
+        )
+        .order_by(Approval.step)
+    )
+    approvals = []
+    for step in steps:
+        candidates = list(
+            session.scalars(
+                select(ApprovalCandidate.user_id)
+                .where(
+                    ApprovalCandidate.organization_id == record.organization_id,
+                    ApprovalCandidate.approval_id == step.id,
+                )
+                .order_by(ApprovalCandidate.user_id)
+            )
+        )
+        decision = session.scalar(
+            select(ApprovalDecision).where(
+                ApprovalDecision.organization_id == record.organization_id,
+                ApprovalDecision.approval_id == step.id,
+            )
+        )
+        approvals.append(
+            StepRead(
+                id=step.id,
+                step=step.step,
+                approver_id=step.approver_id,
+                approver_role=step.approver_role,
+                status=step.status,
+                candidates=candidates,
+                decision=DecisionRead.model_validate(decision) if decision else None,
+            )
+        )
+    return approvals
+
+
+def list_revisions(
+    session: Session, principal: Principal, request_id: UUID, limit: int, offset: int
+) -> RevisionPage:
+    validate_principal(session, principal)
+    record = scoped_request(session, principal, request_id)
+    revisions = list(
+        session.scalars(
+            select(RequestRevision)
+            .where(
+                RequestRevision.organization_id == record.organization_id,
+                RequestRevision.request_id == record.id,
+            )
+            .order_by(RequestRevision.event_sequence)
+            .limit(limit)
+            .offset(offset)
+        )
+    )
+    submissions = list(
+        session.scalars(
+            select(RequestSubmission)
+            .where(
+                RequestSubmission.organization_id == record.organization_id,
+                RequestSubmission.request_id == record.id,
+                RequestSubmission.revision_id.in_([revision.id for revision in revisions]),
+            )
+            .order_by(RequestSubmission.sequence)
+        )
+    )
+    submission_reads = []
+    for submission in submissions:
+        policy = session.scalar(
+            select(ApprovalPolicy).where(
+                ApprovalPolicy.organization_id == record.organization_id,
+                ApprovalPolicy.id == submission.policy_id,
+            )
+        )
+        assert policy is not None
+        submission_reads.append(
+            SubmissionRead(
+                sequence=submission.sequence,
+                routing_sequence=submission.routing_sequence,
+                revision_id=submission.revision_id,
+                policy_id=policy.id,
+                policy_version=policy.version,
+                policy_definition=policy.definition,
+                leave_overlap=submission.leave_overlap,
+                approvals=approval_reads(session, record, submission.sequence),
+            )
+        )
+    changes = session.scalars(
+        select(RequestChangeRequest)
+        .where(
+            RequestChangeRequest.organization_id == record.organization_id,
+            RequestChangeRequest.request_id == record.id,
+            (
+                RequestChangeRequest.event_sequence.in_(
+                    [
+                        revision.change_sequence
+                        for revision in revisions
+                        if revision.change_sequence is not None
+                    ]
+                )
+            )
+            | (
+                RequestChangeRequest.submission_sequence.in_(
+                    [submission.sequence for submission in submissions]
+                )
+            ),
+        )
+        .order_by(RequestChangeRequest.event_sequence)
+    )
+    return RevisionPage(
+        items=[RevisionRead.model_validate(revision) for revision in revisions],
+        submissions=submission_reads,
+        change_requests=[ChangeRequestRead.model_validate(change) for change in changes],
+        limit=limit,
+        offset=offset,
     )

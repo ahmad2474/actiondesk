@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import and_, exists, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -14,6 +14,7 @@ from app.db.models import (
     DepartmentManager,
     EmployeeManager,
     Request,
+    RequestChangeRequest,
     RoleAssignment,
 )
 from app.domain.errors import DomainError
@@ -107,9 +108,24 @@ def triage_predicate(actor: Principal) -> ColumnElement[bool]:
     )
 
 
+def current_approval() -> ColumnElement[bool]:
+    return func.coalesce(
+        Approval.submission_sequence, Request.submission_sequence
+    ) == func.coalesce(Request.current_submission_sequence, Request.submission_sequence)
+
+
 def visible_predicate(actor: Principal) -> ColumnElement[bool]:
     candidate = exists(
-        select(ApprovalCandidate.user_id).where(
+        select(ApprovalCandidate.user_id)
+        .join(
+            Approval,
+            and_(
+                Approval.organization_id == ApprovalCandidate.organization_id,
+                Approval.id == ApprovalCandidate.approval_id,
+            ),
+        )
+        .where(
+            current_approval(),
             ApprovalCandidate.organization_id == Request.organization_id,
             ApprovalCandidate.request_id == Request.id,
             candidate_predicate(actor),
@@ -137,6 +153,14 @@ def visible_predicate(actor: Principal) -> ColumnElement[bool]:
         service,
         candidate,
         decided,
+        exists(
+            select(RequestChangeRequest.event_sequence).where(
+                RequestChangeRequest.organization_id == Request.organization_id,
+                RequestChangeRequest.request_id == Request.id,
+                RequestChangeRequest.actor_id == actor.user_id,
+                has_role(actor, RequestChangeRequest.required_role),
+            )
+        ),
         processing_predicate(actor),
         and_(
             Request.type == T.EXPENSE,
@@ -168,6 +192,7 @@ def actionable_approvals(actor: Principal) -> ColumnElement[bool]:
         Request.organization_id == actor.organization_id,
         Request.workflow_version == 1,
         Approval.status == "pending",
+        current_approval(),
         or_(
             and_(Request.status == S.MANAGER_REVIEW, Approval.approver_role == Role.MANAGER),
             and_(Request.status == S.FINANCE_REVIEW, Approval.approver_role == Role.FINANCE),
@@ -176,6 +201,8 @@ def actionable_approvals(actor: Principal) -> ColumnElement[bool]:
             select(earlier.c.id).where(
                 earlier.c.organization_id == Approval.organization_id,
                 earlier.c.request_id == Approval.request_id,
+                func.coalesce(earlier.c.submission_sequence, Request.submission_sequence)
+                == func.coalesce(Request.current_submission_sequence, Request.submission_sequence),
                 earlier.c.step < Approval.step,
                 earlier.c.status != "approved",
             )

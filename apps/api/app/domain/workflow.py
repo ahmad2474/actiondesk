@@ -19,9 +19,29 @@ class Action(StrEnum):
     REJECT = "reject"
     PROCESS = "process"
     CANCEL = "cancel"
+    REQUEST_CHANGES = "request_changes"
+    REVISE = "revise"
+    RESUBMIT = "resubmit"
 
 
 EDGES: dict[tuple[T, S, Action], frozenset[S]] = {
+    **{
+        (kind, state, Action.REQUEST_CHANGES): frozenset({S.NEEDS_INFO})
+        for kind, states in (
+            (T.EXPENSE, (S.MANAGER_REVIEW, S.FINANCE_REVIEW)),
+            (T.LEAVE, (S.MANAGER_REVIEW,)),
+        )
+        for state in states
+    },
+    **{
+        (kind, S.NEEDS_INFO, action): frozenset({target})
+        for kind in (T.EXPENSE, T.LEAVE)
+        for action, target in (
+            (Action.REVISE, S.NEEDS_INFO),
+            (Action.RESUBMIT, S.SUBMITTED),
+            (Action.CANCEL, S.WITHDRAWN),
+        )
+    },
     (T.SERVICE, S.SUBMITTED, Action.TRIAGE): frozenset({S.TRIAGED}),
     (T.SERVICE, S.TRIAGED, Action.ASSIGN): frozenset({S.ASSIGNED}),
     (T.SERVICE, S.ASSIGNED, Action.START): frozenset({S.IN_PROGRESS}),

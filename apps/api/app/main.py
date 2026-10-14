@@ -20,7 +20,7 @@ from app.domain.errors import DomainError
 from app.schemas.core import Problem
 from app.services.passwords import dummy_hash
 
-EXPECTED_REVISION = "0004_workflows"
+EXPECTED_REVISION = "0005_revisions"
 
 
 class Health(BaseModel):
