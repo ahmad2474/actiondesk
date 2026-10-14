@@ -444,6 +444,7 @@ def test_tenant_relationships_reject_foreign_organization(database: Engine, case
             "request_department",
             "request_policy",
             "request_processor",
+            "request_follow_up",
             "request_fields",
             "approval_request",
             "approval_actor",

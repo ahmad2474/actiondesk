@@ -107,6 +107,8 @@ def test_only_authorized_milestone_routes() -> None:
         "/auth/logout",
         "/auth/me",
         "/approvals",
+        "/reversals",
+        "/requests/{request_id}/lifecycle",
         "/requests/{request_id}/transitions",
         "/requests/{request_id}/revisions",
     }

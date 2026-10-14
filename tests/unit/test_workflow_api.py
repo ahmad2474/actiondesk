@@ -127,7 +127,7 @@ def test_openapi_actions_and_money_are_discriminated() -> None:
         "content"
     ]["application/json"]["schema"]
     assert body["discriminator"]["propertyName"] == "action"
-    assert len(body["oneOf"]) == 13
+    assert len(body["oneOf"]) == 18
     assert (
         document["components"]["schemas"]["ExpenseSubmission"]["properties"]["amount"]["type"]
         == "string"
@@ -190,3 +190,67 @@ def test_revision_http_contract(client: TestClient, api_world: World) -> None:
     )
     app.dependency_overrides[authenticated_principal] = lambda: api_world.admin
     assert client.get(f"/requests/{record.id}/revisions").status_code == 404
+
+
+def test_lifecycle_contract_and_reversal_queue(client: TestClient, api_world: World) -> None:
+    from tests.lifecycle_cases import approved, configure_reopen, resolved
+
+    record = approved(api_world, amount="100.01")
+    url = f"/requests/{record.id}/transitions"
+    payload = {
+        "action": "request_reversal",
+        "expected_version": record.version,
+        "reason": "Correct approved fields",
+        "intent": "correct",
+    }
+    for invalid in (
+        {**payload, "intent": "refund"},
+        {**payload, "actor_id": str(api_world.manager.user_id)},
+        {**payload, "approved_at": None},
+        {**payload, "data": submission()},
+    ):
+        response = client.post(url, json=invalid, headers={"Idempotency-Key": str(uuid4())})
+        assert (
+            response.status_code == 422 and response.json()["detail"] == "Request input is invalid."
+        )
+    result = client.post(url, json=payload, headers={"Idempotency-Key": str(uuid4())})
+    assert result.status_code == 200, result.text
+    record_data = result.json()["request"]
+    assert record_data["status"] == "REVERSAL_REVIEW"
+    assert client.get("/reversals").json()["items"] == []
+    app.dependency_overrides[authenticated_principal] = lambda: api_world.manager
+    assert client.get("/reversals").json()["items"] == []
+    app.dependency_overrides[authenticated_principal] = lambda: api_world.finance
+    queue = client.get("/reversals?limit=1").json()
+    assert queue["items"][0]["id"] == record_data["active_reversal"]["id"]
+    body = {
+        "action": "approve_reversal",
+        "expected_version": record_data["version"],
+        "reason": "Independent review",
+        "reversal_request_id": record_data["active_reversal"]["id"],
+    }
+    result = client.post(url, json=body, headers={"Idempotency-Key": str(uuid4())})
+    assert result.status_code == 200, result.text
+    assert result.json()["request"]["reversal_decision"]["outcome"] == "accepted"
+    assert client.get("/reversals").json()["items"] == []
+    assert (
+        client.get(f"/requests/{record.id}/lifecycle").json()["reversal_decisions"][0]["outcome"]
+        == "accepted"
+    )
+    app.dependency_overrides[authenticated_principal] = lambda: api_world.admin
+    assert client.get(f"/requests/{record.id}/lifecycle").status_code == 404
+    configure_reopen(api_world)
+    service = resolved(api_world)
+    url = f"/requests/{service.id}/transitions"
+    body = {"action": "reopen", "expected_version": service.version, "reason": "Unresolved issue"}
+    invalid = {**body, "window_seconds": 604800}
+    assert (
+        client.post(url, json=invalid, headers={"Idempotency-Key": str(uuid4())}).status_code == 422
+    )
+    result = client.post(url, json=body, headers={"Idempotency-Key": str(uuid4())})
+    assert result.status_code == 200, result.text
+    assert result.json()["request"]["resolution"] is None
+    assert (
+        client.get(f"/requests/{service.id}/lifecycle").json()["resolutions"][0]["body"]
+        == "First resolution"
+    )

@@ -15,6 +15,8 @@ from app.db.models import (
     EmployeeManager,
     Request,
     RequestChangeRequest,
+    ReversalDecision,
+    ReversalRequest,
     RoleAssignment,
 )
 from app.domain.errors import DomainError
@@ -161,7 +163,34 @@ def visible_predicate(actor: Principal) -> ColumnElement[bool]:
                 has_role(actor, RequestChangeRequest.required_role),
             )
         ),
+        exists(
+            select(ReversalDecision.id)
+            .join(
+                ReversalRequest,
+                (ReversalRequest.organization_id == ReversalDecision.organization_id)
+                & (ReversalRequest.id == ReversalDecision.reversal_request_id),
+            )
+            .join(
+                ApprovalDecision,
+                (ApprovalDecision.organization_id == ReversalRequest.organization_id)
+                & (ApprovalDecision.id == ReversalRequest.final_decision_id),
+            )
+            .where(
+                ReversalDecision.organization_id == Request.organization_id,
+                ReversalDecision.request_id == Request.id,
+                ReversalDecision.actor_id == actor.user_id,
+                has_role(actor, ApprovalDecision.required_role),
+            )
+        ),
         processing_predicate(actor),
+        and_(
+            Request.type == T.EXPENSE,
+            Request.workflow_version == 1,
+            Request.status == S.REVERSAL_REVIEW,
+            Request.approved_at.is_not(None),
+            Request.created_by != actor.user_id,
+            has_role(actor, Role.FINANCE),
+        ),
         and_(
             Request.type == T.EXPENSE,
             Request.processed_by == actor.user_id,
@@ -227,7 +256,7 @@ def scope_predicate(actor: Principal, scope: WorkScope) -> ColumnElement[bool]:
             return and_(
                 Request.type == T.SERVICE,
                 Request.assigned_to == actor.user_id,
-                Request.status.in_([S.ASSIGNED, S.IN_PROGRESS, S.RESOLVED]),
+                Request.status.in_([S.ASSIGNED, S.IN_PROGRESS, S.RESOLVED, S.REOPENED]),
             )
         case WorkScope.TRIAGE:
             return triage_predicate(actor)

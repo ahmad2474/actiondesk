@@ -137,6 +137,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requests/{request_id}/lifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Request Lifecycle */
+        get: operations["list_request_lifecycle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requests/{request_id}/revisions": {
         parameters: {
             query?: never;
@@ -168,6 +185,23 @@ export interface paths {
          * @description Typed action. Idempotency-Key binds actor, request and canonical payload. Exact retries return the original compact outcome and currently authorized detail.
          */
         post: operations["transition_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reversals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reversals */
+        get: operations["list_reversals"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -221,6 +255,23 @@ export interface components {
             expected_version: number;
             /** Reason */
             reason: string;
+        };
+        /** ApproveReversal */
+        ApproveReversal: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "approve_reversal";
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Reversal Request Id
+             * Format: uuid
+             */
+            reversal_request_id: string;
         };
         /** Assign */
         Assign: {
@@ -291,6 +342,23 @@ export interface components {
             expected_version: number;
             /** Reason */
             reason: string;
+        };
+        /** CreateCorrection */
+        CreateCorrection: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "create_correction";
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Reversal Request Id
+             * Format: uuid
+             */
+            reversal_request_id: string;
         };
         /** DecisionRead */
         DecisionRead: {
@@ -387,6 +455,21 @@ export interface components {
              */
             type: "leave";
         };
+        /** LifecyclePage */
+        LifecyclePage: {
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Reopenings */
+            reopenings: components["schemas"]["ServiceReopeningRead"][];
+            /** Resolutions */
+            resolutions: components["schemas"]["ServiceResolutionRead"][];
+            /** Reversal Decisions */
+            reversal_decisions: components["schemas"]["ReversalDecisionRead"][];
+            /** Reversal Requests */
+            reversal_requests: components["schemas"]["ReversalRequestRead"][];
+        };
         /** Login */
         Login: {
             /** Email */
@@ -437,6 +520,37 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** RejectReversal */
+        RejectReversal: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "reject_reversal";
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Reversal Request Id
+             * Format: uuid
+             */
+            reversal_request_id: string;
+        };
+        /** Reopen */
+        Reopen: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "reopen";
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+            /** Resolution Id */
+            resolution_id?: string | null;
+        };
         /** RequestChanges */
         RequestChanges: {
             /**
@@ -469,6 +583,7 @@ export interface components {
         };
         /** RequestDetail */
         RequestDetail: {
+            active_reversal?: components["schemas"]["ReversalRequestRead"] | null;
             /** Approval Policy Id */
             approval_policy_id?: string | null;
             /** Approvals */
@@ -480,6 +595,8 @@ export interface components {
             /** Completed At */
             completed_at?: string | null;
             correction?: components["schemas"]["ChangeRequestRead"] | null;
+            /** Correction Source Id */
+            correction_source_id?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -490,6 +607,7 @@ export interface components {
              * Format: uuid
              */
             created_by: string;
+            current_resolution?: components["schemas"]["ServiceResolutionRead"] | null;
             /** Current Submission Sequence */
             current_submission_sequence?: number | null;
             /**
@@ -519,8 +637,13 @@ export interface components {
             proposed_revision?: components["schemas"]["RevisionRead"] | null;
             /** Raw Text */
             raw_text: string;
+            /** Replacement Request Id */
+            replacement_request_id?: string | null;
             /** Resolution */
             resolution?: string | null;
+            reversal_decision?: components["schemas"]["ReversalDecisionRead"] | null;
+            /** Service Cycle Sequence */
+            service_cycle_sequence?: number | null;
             status: components["schemas"]["RequestStatus"];
             /** Status History */
             status_history: components["schemas"]["StatusHistoryRead"][];
@@ -589,11 +712,28 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** RequestReversal */
+        RequestReversal: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "request_reversal";
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Intent
+             * @enum {string}
+             */
+            intent: "withdraw" | "correct";
+            /** Reason */
+            reason: string;
+        };
         /**
          * RequestStatus
          * @enum {string}
          */
-        RequestStatus: "DRAFT" | "SUBMITTED" | "TRIAGED" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | "NEEDS_INFO" | "REOPENED" | "CANCELLED" | "MANAGER_REVIEW" | "FINANCE_REVIEW" | "APPROVED" | "COMPLETED" | "REJECTED" | "WITHDRAWN";
+        RequestStatus: "DRAFT" | "SUBMITTED" | "TRIAGED" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | "NEEDS_INFO" | "REOPENED" | "CANCELLED" | "MANAGER_REVIEW" | "FINANCE_REVIEW" | "APPROVED" | "COMPLETED" | "REVERSAL_REVIEW" | "REVERSED" | "REJECTED" | "WITHDRAWN";
         /**
          * RequestType
          * @enum {string}
@@ -629,6 +769,70 @@ export interface components {
              * Format: uuid
              */
             revision_id: string;
+        };
+        /** ReversalDecisionRead */
+        ReversalDecisionRead: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /** Event Sequence */
+            event_sequence: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Organization Timezone */
+            organization_timezone: string;
+            /** Outcome */
+            outcome: string;
+            /**
+             * Reversal Request Id
+             * Format: uuid
+             */
+            reversal_request_id: string;
+        };
+        /** ReversalPage */
+        ReversalPage: {
+            /** Items */
+            items: components["schemas"]["ReversalRequestRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** ReversalRequestRead */
+        ReversalRequestRead: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /** Event Sequence */
+            event_sequence: number;
+            /**
+             * Final Decision Id
+             * Format: uuid
+             */
+            final_decision_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Intent */
+            intent: string;
+            /** Organization Timezone */
+            organization_timezone: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Submission Sequence */
+            submission_sequence: number;
         };
         /** Revise */
         Revise: {
@@ -698,6 +902,59 @@ export interface components {
          * @enum {string}
          */
         Role: "employee" | "manager" | "finance" | "admin";
+        /** ServiceReopeningRead */
+        ServiceReopeningRead: {
+            /** Event Sequence */
+            event_sequence: number;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Policy Id
+             * Format: uuid
+             */
+            policy_id: string;
+            /**
+             * Resolution Id
+             * Format: uuid
+             */
+            resolution_id: string;
+        };
+        /** ServiceResolutionRead */
+        ServiceResolutionRead: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Body */
+            body: string;
+            /** Captured At */
+            captured_at: string | null;
+            /** Captured By */
+            captured_by: string | null;
+            /** Cycle Sequence */
+            cycle_sequence: number;
+            /** Event Sequence */
+            event_sequence: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
         /** Start */
         Start: {
             /**
@@ -803,6 +1060,8 @@ export interface components {
             action: string;
             /** Decision Id */
             decision_id: string | null;
+            /** Related Request Id */
+            related_request_id?: string | null;
             /**
              * Request Id
              * Format: uuid
@@ -1669,6 +1928,115 @@ export interface operations {
             };
         };
     };
+    list_request_lifecycle: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecyclePage"];
+                };
+            };
+            /** @description Verified active identity required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Requester or role restriction */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Request missing or not visible */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Invalid input or unavailable department */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
     list_request_revisions: {
         parameters: {
             query?: {
@@ -1791,7 +2159,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Submit"] | components["schemas"]["Triage"] | components["schemas"]["Assign"] | components["schemas"]["Start"] | components["schemas"]["Resolve"] | components["schemas"]["Close"] | components["schemas"]["Approve"] | components["schemas"]["Reject"] | components["schemas"]["Process"] | components["schemas"]["Cancel"] | components["schemas"]["RequestChanges"] | components["schemas"]["Revise"] | components["schemas"]["Resubmit"];
+                "application/json": components["schemas"]["Submit"] | components["schemas"]["Triage"] | components["schemas"]["Assign"] | components["schemas"]["Start"] | components["schemas"]["Resolve"] | components["schemas"]["Close"] | components["schemas"]["Approve"] | components["schemas"]["Reject"] | components["schemas"]["Process"] | components["schemas"]["Cancel"] | components["schemas"]["RequestChanges"] | components["schemas"]["Revise"] | components["schemas"]["Resubmit"] | components["schemas"]["RequestReversal"] | components["schemas"]["ApproveReversal"] | components["schemas"]["RejectReversal"] | components["schemas"]["CreateCorrection"] | components["schemas"]["Reopen"];
             };
         };
         responses: {
@@ -1889,6 +2257,92 @@ export interface operations {
                 };
             };
             /** @description Invalid input or unavailable department */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    list_reversals: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReversalPage"];
+                };
+            };
+            /** @description Verified active identity required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Active organization role required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Invalid pagination */
             422: {
                 headers: {
                     [name: string]: unknown;

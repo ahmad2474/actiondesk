@@ -14,13 +14,14 @@ from app.api.approvals import router as approvals_router
 from app.api.auth import router as auth_router
 from app.api.cors import AuthCORSMiddleware
 from app.api.requests import router as requests_router
+from app.api.reversals import router as reversals_router
 from app.core.auth_config import get_auth_settings
 from app.core.config import get_settings
 from app.domain.errors import DomainError
 from app.schemas.core import Problem
 from app.services.passwords import dummy_hash
 
-EXPECTED_REVISION = "0005_revisions"
+EXPECTED_REVISION = "0006_lifecycle"
 
 
 class Health(BaseModel):
@@ -49,6 +50,7 @@ app = FastAPI(title="ActionDesk API", version="0.0.1", lifespan=lifespan)
 app.include_router(requests_router)
 app.include_router(auth_router)
 app.include_router(approvals_router)
+app.include_router(reversals_router)
 app.add_middleware(
     AuthCORSMiddleware,
     allow_origins=[],

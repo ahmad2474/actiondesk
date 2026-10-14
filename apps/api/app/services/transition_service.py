@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from pydantic import ValidationError
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -14,6 +14,7 @@ from app.db.models import (
     ApprovalCandidate,
     ApprovalDecision,
     ApprovalPolicy,
+    CorrectionLink,
     MutationReceipt,
     Request,
     RequestChangeRequest,
@@ -32,14 +33,19 @@ from app.domain.workflow import Action, require_edge
 from app.schemas.workflow import (
     ApprovalPolicyDefinition,
     Approve,
+    ApproveReversal,
     Assign,
     Cancel,
     Close,
+    CreateCorrection,
     ExpenseSubmission,
     LeaveSubmission,
     Process,
     Reject,
+    RejectReversal,
+    Reopen,
     RequestChanges,
+    RequestReversal,
     Resolve,
     Resubmit,
     Revise,
@@ -295,7 +301,9 @@ def submit(
                 Request.created_by == record.created_by,
                 Request.type == T.LEAVE,
                 Request.id != record.id,
-                Request.status.in_([S.SUBMITTED, S.MANAGER_REVIEW, S.APPROVED, S.NEEDS_INFO]),
+                Request.status.in_(
+                    [S.SUBMITTED, S.MANAGER_REVIEW, S.APPROVED, S.NEEDS_INFO, S.REVERSAL_REVIEW]
+                ),
             )
         ).scalars()
         for other in existing:
@@ -504,7 +512,9 @@ def latest_proposal(session: Session, record: Request, revision_id: UUID) -> Req
     return proposal
 
 
-def capture_submission(session: Session, actor: Principal, record: Request, now: datetime) -> None:
+def capture_submission(
+    session: Session, actor: Principal, record: Request, now: datetime, *, approval: bool = False
+) -> None:
     sequence = current_sequence(record)
     if session.get(RequestSubmission, (record.organization_id, record.id, sequence)) is not None:
         return
@@ -548,7 +558,7 @@ def capture_submission(session: Session, actor: Principal, record: Request, now:
         event_sequence=record.version + 1,
         actor_id=actor.user_id,
         at=now,
-        kind="captured",
+        kind="approval_capture" if approval else "captured",
         schema_version=1,
         fields=fields.fields,
         clarification="",
@@ -622,7 +632,17 @@ def apply(
     roles: frozenset[Role],
     now: datetime,
 ) -> UUID | None:
-    if isinstance(action, (Submit, Resubmit)):
+    from app.services import lifecycle
+
+    if isinstance(action, RequestReversal):
+        lifecycle.request_reversal(session, actor, record, action, now)
+    elif isinstance(action, (ApproveReversal, RejectReversal)):
+        lifecycle.decide_reversal(session, actor, record, action, now)
+    elif isinstance(action, CreateCorrection):
+        lifecycle.create_correction(session, actor, record, action, now)
+    elif isinstance(action, Reopen):
+        lifecycle.reopen(session, actor, record, action, roles, now)
+    elif isinstance(action, (Submit, Resubmit)):
         submit(session, actor, record, action, now)
     elif isinstance(action, RequestChanges):
         _, step = actionable_step(session, actor, record, action, now)
@@ -710,11 +730,12 @@ def apply(
                     )
                 target = S.ASSIGNED
                 record.assigned_to = action.assignee_id
-        elif isinstance(action, (Start, Resolve)):
-            forbid_unless(record.assigned_to == actor.user_id)
-            target = S.IN_PROGRESS if isinstance(action, Start) else S.RESOLVED
-            if isinstance(action, Resolve):
-                record.resolution = action.resolution
+        elif isinstance(action, Start):
+            lifecycle.service_start(session, actor, record, action.reason, now)
+            return None
+        elif isinstance(action, Resolve):
+            lifecycle.service_resolve(session, actor, record, action.resolution, action.reason, now)
+            return None
         elif isinstance(action, Close):
             forbid_unless(record.created_by == actor.user_id or Role.ADMIN in roles)
             target = S.CLOSED
@@ -762,7 +783,19 @@ def transition(
                     "Conflict",
                     f"Current request state is {record.status}, version {record.version}.",
                 )
-            decision_id = apply(session, actor, record, action, roles, datetime.now(UTC))
+            now = datetime.now(UTC)
+            if session.get_bind().dialect.name == "postgresql" and isinstance(
+                action, (RequestReversal, ApproveReversal, RejectReversal, CreateCorrection, Reopen)
+            ):
+                operation_time = session.scalar(select(func.clock_timestamp()))
+                assert isinstance(operation_time, datetime)
+                now = operation_time
+            decision_id = apply(session, actor, record, action, roles, now)
+            link = (
+                session.get(CorrectionLink, (record.organization_id, record.id))
+                if isinstance(action, CreateCorrection)
+                else None
+            )
             receipt = MutationReceipt(
                 organization_id=actor.organization_id,
                 actor_id=actor.user_id,
@@ -773,11 +806,12 @@ def transition(
                 version=record.version,
                 status=record.status,
                 decision_id=decision_id,
+                related_request_id=link.child_id if link else None,
             )
             session.add(receipt)
             session.flush()
         result = TransitionRead(
             outcome=TransitionOutcome.model_validate(receipt),
-            request=request_detail(session, record),
+            request=request_detail(session, record, actor),
         )
     return result

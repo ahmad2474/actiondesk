@@ -452,7 +452,7 @@ class WorkflowCases:
             {"action": "assign"},
             {"action": "resolve"},
             {"action": "route"},
-            {"action": "reopen"},
+            {"action": "reopen", "resolved_at": "2026-10-14T00:00:00Z"},
             {"action": "reject", "reason": " "},
         ):
             with pytest.raises(ValidationError):

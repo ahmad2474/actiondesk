@@ -12,6 +12,7 @@ from app.db.models import (
     ApprovalCandidate,
     ApprovalDecision,
     ApprovalPolicy,
+    CorrectionLink,
     Department,
     Request,
     RequestChangeRequest,
@@ -19,7 +20,11 @@ from app.db.models import (
     RequestFields,
     RequestRevision,
     RequestSubmission,
+    ReversalDecision,
+    ReversalRequest,
     RoleAssignment,
+    ServiceReopening,
+    ServiceResolution,
     User,
 )
 from app.domain.errors import DomainError
@@ -28,17 +33,28 @@ from app.domain.types import UserStatus, initial_request_status
 from app.schemas.core import (
     ChangeRequestRead,
     DecisionRead,
+    LifecyclePage,
     RequestCreate,
     RequestDetail,
     RequestPage,
     RequestRead,
+    ReversalDecisionRead,
+    ReversalRequestRead,
     RevisionPage,
     RevisionRead,
+    ServiceReopeningRead,
+    ServiceResolutionRead,
     StatusHistoryRead,
     StepRead,
     SubmissionRead,
 )
-from app.services.visibility import WorkScope, current_approval, scope_predicate, scoped_request
+from app.services.visibility import (
+    WorkScope,
+    current_approval,
+    scope_predicate,
+    scoped_request,
+    visible_predicate,
+)
 
 
 def validate_principal(session: Session, principal: Principal) -> None:
@@ -65,7 +81,9 @@ def validate_principal(session: Session, principal: Principal) -> None:
         raise DomainError(403, "Forbidden", "An active organization role is required.")
 
 
-def request_detail(session: Session, record: Request) -> RequestDetail:
+def request_detail(
+    session: Session, record: Request, actor: Principal | None = None
+) -> RequestDetail:
     events = session.scalars(
         select(RequestEvent)
         .where(
@@ -99,7 +117,61 @@ def request_detail(session: Session, record: Request) -> RequestDetail:
         if record.status == "NEEDS_INFO"
         else None
     )
+    reversal = (
+        session.scalar(
+            select(ReversalRequest).where(
+                ReversalRequest.organization_id == record.organization_id,
+                ReversalRequest.request_id == record.id,
+                ReversalRequest.id == record.active_reversal_id,
+            )
+        )
+        if record.active_reversal_id
+        else None
+    )
+    reversal_decision = (
+        session.scalar(
+            select(ReversalDecision).where(
+                ReversalDecision.organization_id == record.organization_id,
+                ReversalDecision.reversal_request_id == record.active_reversal_id,
+            )
+        )
+        if reversal
+        else None
+    )
+    resolution = (
+        session.scalar(
+            select(ServiceResolution).where(
+                ServiceResolution.organization_id == record.organization_id,
+                ServiceResolution.request_id == record.id,
+                ServiceResolution.id == record.latest_resolution_id,
+                ServiceResolution.cycle_sequence == record.service_cycle_sequence,
+            )
+        )
+        if record.latest_resolution_id
+        else None
+    )
+    child = session.get(CorrectionLink, (record.organization_id, record.id))
+
+    def visible_link(request_id: UUID | None) -> UUID | None:
+        if request_id is None or actor is None:
+            return None
+        return session.scalar(
+            select(Request.id).where(
+                Request.organization_id == actor.organization_id,
+                Request.id == request_id,
+                visible_predicate(actor),
+            )
+        )
+
     return RequestDetail(
+        active_reversal=ReversalRequestRead.model_validate(reversal) if reversal else None,
+        reversal_decision=ReversalDecisionRead.model_validate(reversal_decision)
+        if reversal_decision
+        else None,
+        current_resolution=ServiceResolutionRead.model_validate(resolution) if resolution else None,
+        service_cycle_sequence=record.service_cycle_sequence,
+        replacement_request_id=visible_link(child.child_id if child else None),
+        correction_source_id=visible_link(record.follow_up_to_id),
         **RequestRead.model_validate(record).model_dump(),
         current_submission_sequence=record.current_submission_sequence
         or record.submission_sequence,
@@ -110,7 +182,9 @@ def request_detail(session: Session, record: Request) -> RequestDetail:
         completed_at=record.completed_at,
         processed_by=record.processed_by,
         processing_reference=record.processing_reference,
-        resolution=record.resolution,
+        resolution=resolution.body
+        if resolution
+        else (record.resolution if record.service_cycle_sequence is None else None),
         approval_policy_id=record.approval_policy_id,
         structured_fields=fields.fields if fields else None,
         leave_overlap=record.leave_overlap,
@@ -191,13 +265,13 @@ def create_request(
                 )
             )
             session.flush()
-        result = request_detail(session, record)
+        result = request_detail(session, record, principal)
     return result
 
 
 def get_request(session: Session, principal: Principal, request_id: UUID) -> RequestDetail:
     validate_principal(session, principal)
-    return request_detail(session, scoped_request(session, principal, request_id))
+    return request_detail(session, scoped_request(session, principal, request_id), principal)
 
 
 def list_requests(
@@ -352,6 +426,61 @@ def list_revisions(
         items=[RevisionRead.model_validate(revision) for revision in revisions],
         submissions=submission_reads,
         change_requests=[ChangeRequestRead.model_validate(change) for change in changes],
+        limit=limit,
+        offset=offset,
+    )
+
+
+def list_lifecycle(
+    session: Session, actor: Principal, request_id: UUID, limit: int, offset: int
+) -> LifecyclePage:
+    validate_principal(session, actor)
+    record = scoped_request(session, actor, request_id)
+    reversals = session.scalars(
+        select(ReversalRequest)
+        .where(
+            ReversalRequest.organization_id == record.organization_id,
+            ReversalRequest.request_id == record.id,
+        )
+        .order_by(ReversalRequest.event_sequence)
+        .limit(limit)
+        .offset(offset)
+    )
+    decisions = session.scalars(
+        select(ReversalDecision)
+        .where(
+            ReversalDecision.organization_id == record.organization_id,
+            ReversalDecision.request_id == record.id,
+        )
+        .order_by(ReversalDecision.event_sequence)
+        .limit(limit)
+        .offset(offset)
+    )
+    resolutions = session.scalars(
+        select(ServiceResolution)
+        .where(
+            ServiceResolution.organization_id == record.organization_id,
+            ServiceResolution.request_id == record.id,
+        )
+        .order_by(ServiceResolution.event_sequence)
+        .limit(limit)
+        .offset(offset)
+    )
+    reopenings = session.scalars(
+        select(ServiceReopening)
+        .where(
+            ServiceReopening.organization_id == record.organization_id,
+            ServiceReopening.request_id == record.id,
+        )
+        .order_by(ServiceReopening.event_sequence)
+        .limit(limit)
+        .offset(offset)
+    )
+    return LifecyclePage(
+        reversal_requests=[ReversalRequestRead.model_validate(item) for item in reversals],
+        reversal_decisions=[ReversalDecisionRead.model_validate(item) for item in decisions],
+        resolutions=[ServiceResolutionRead.model_validate(item) for item in resolutions],
+        reopenings=[ServiceReopeningRead.model_validate(item) for item in reopenings],
         limit=limit,
         offset=offset,
     )

@@ -249,6 +249,42 @@ class Request(TenantEntity, Base):
             deferrable=True,
             initially="DEFERRED",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "id", "active_reversal_id"],
+            [
+                "request_reversal_requests.organization_id",
+                "request_reversal_requests.request_id",
+                "request_reversal_requests.id",
+            ],
+            name="fk_active_reversal",
+            use_alter=True,
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "id", "latest_resolution_id"],
+            [
+                "service_resolutions.organization_id",
+                "service_resolutions.request_id",
+                "service_resolutions.id",
+            ],
+            name="fk_latest_resolution",
+            use_alter=True,
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "id", "service_cycle_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+            name="fk_service_cycle",
+            use_alter=True,
+            deferrable=True,
+            initially="DEFERRED",
+        ),
         CheckConstraint("version > 0", name="positive_request_version"),
         CheckConstraint(
             "workflow_version IS NULL OR workflow_version = 1", name="workflow_version"
@@ -264,6 +300,9 @@ class Request(TenantEntity, Base):
         Index("ix_requests_org_due", "organization_id", "due_at"),
     )
     current_submission_sequence: Mapped[int | None] = mapped_column(Integer)
+    active_reversal_id: Mapped[UUID | None]
+    service_cycle_sequence: Mapped[int | None] = mapped_column(Integer)
+    latest_resolution_id: Mapped[UUID | None]
     proposed_revision_id: Mapped[UUID | None]
     workflow_version: Mapped[int | None] = mapped_column(Integer)
     submission_sequence: Mapped[int | None] = mapped_column(Integer)
@@ -527,6 +566,9 @@ class MutationReceipt(Base):
             ["organization_id", "decision_id"],
             ["approval_decisions.organization_id", "approval_decisions.id"],
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "related_request_id"], ["requests.organization_id", "requests.id"]
+        ),
         CheckConstraint("length(payload_hash) = 64", name="receipt_hash_length"),
     )
     organization_id: Mapped[UUID] = mapped_column(primary_key=True)
@@ -538,6 +580,7 @@ class MutationReceipt(Base):
     version: Mapped[int] = mapped_column(Integer)
     status: Mapped[RequestStatus] = mapped_column(REQUEST_STATUS)
     decision_id: Mapped[UUID | None]
+    related_request_id: Mapped[UUID | None]
 
 
 class RequestRevision(TenantEntity, Base):
@@ -581,7 +624,10 @@ class RequestRevision(TenantEntity, Base):
             deferrable=True,
             initially="DEFERRED",
         ),
-        CheckConstraint("kind IN ('submitted', 'captured', 'proposed')", name="revision_kind"),
+        CheckConstraint(
+            "kind IN ('submitted', 'captured', 'proposed', 'approval_capture')",
+            name="revision_kind",
+        ),
         CheckConstraint("schema_version = 1", name="revision_schema"),
         CheckConstraint("length(clarification) <= 20000", name="revision_clarification_length"),
     )
@@ -689,3 +735,214 @@ class RequestChangeRequest(Base):
     actor_id: Mapped[UUID]
     requester_id: Mapped[UUID]
     required_role: Mapped[Role] = mapped_column(ROLE)
+
+
+class ReversalRequest(TenantEntity, Base):
+    __tablename__ = "request_reversal_requests"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "request_id", "id"),
+        UniqueConstraint("organization_id", "request_id", "event_sequence"),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "requester_id"],
+            ["requests.organization_id", "requests.id", "requests.created_by"],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "submission_sequence"],
+            [
+                "request_submissions.organization_id",
+                "request_submissions.request_id",
+                "request_submissions.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "actor_id"], ["users.organization_id", "users.id"]
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "final_decision_id"],
+            ["approval_decisions.organization_id", "approval_decisions.id"],
+        ),
+        CheckConstraint("intent IN ('withdraw','correct')", name="reversal_intent"),
+    )
+    request_id: Mapped[UUID]
+    requester_id: Mapped[UUID]
+    submission_sequence: Mapped[int] = mapped_column(Integer)
+    final_decision_id: Mapped[UUID]
+    actor_id: Mapped[UUID]
+    event_sequence: Mapped[int] = mapped_column(Integer)
+    intent: Mapped[str] = mapped_column(String(20))
+    organization_timezone: Mapped[str] = mapped_column(String(80))
+
+
+class ReversalDecision(TenantEntity, Base):
+    __tablename__ = "request_reversal_decisions"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "reversal_request_id"),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "reversal_request_id"],
+            [
+                "request_reversal_requests.organization_id",
+                "request_reversal_requests.request_id",
+                "request_reversal_requests.id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "actor_id"], ["users.organization_id", "users.id"]
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        CheckConstraint("outcome IN ('accepted','denied')", name="reversal_outcome"),
+    )
+    request_id: Mapped[UUID]
+    reversal_request_id: Mapped[UUID]
+    actor_id: Mapped[UUID]
+    event_sequence: Mapped[int] = mapped_column(Integer)
+    outcome: Mapped[str] = mapped_column(String(20))
+    organization_timezone: Mapped[str] = mapped_column(String(80))
+
+
+class CorrectionLink(Base):
+    __tablename__ = "request_correction_links"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "source_id", "reversal_request_id"],
+            [
+                "request_reversal_requests.organization_id",
+                "request_reversal_requests.request_id",
+                "request_reversal_requests.id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "child_id"], ["requests.organization_id", "requests.id"]
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "source_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        UniqueConstraint("organization_id", "child_id"),
+        CheckConstraint("child_id <> source_id", name="correction_not_self"),
+    )
+    organization_id: Mapped[UUID] = mapped_column(primary_key=True)
+    source_id: Mapped[UUID] = mapped_column(primary_key=True)
+    child_id: Mapped[UUID]
+    reversal_request_id: Mapped[UUID]
+    event_sequence: Mapped[int] = mapped_column(Integer)
+
+
+class ServiceResolution(TenantEntity, Base):
+    __tablename__ = "service_resolutions"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "request_id", "id"),
+        UniqueConstraint("organization_id", "request_id", "event_sequence"),
+        UniqueConstraint("organization_id", "request_id", "cycle_sequence"),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "cycle_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "actor_id"], ["users.organization_id", "users.id"]
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "captured_by"], ["users.organization_id", "users.id"]
+        ),
+        CheckConstraint("length(btrim(body)) BETWEEN 1 AND 20000", name="resolution_body_length"),
+        CheckConstraint(
+            "(captured_at IS NULL) = (captured_by IS NULL)", name="resolution_capture_pair"
+        ),
+    )
+    request_id: Mapped[UUID]
+    cycle_sequence: Mapped[int] = mapped_column(Integer)
+    event_sequence: Mapped[int] = mapped_column(Integer)
+    actor_id: Mapped[UUID]
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    body: Mapped[str] = mapped_column(Text)
+    captured_by: Mapped[UUID | None]
+    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ServiceReopenPolicy(TenantEntity, Base):
+    __tablename__ = "service_reopen_policies"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id"),
+        UniqueConstraint("organization_id", "name", "version"),
+        CheckConstraint("version > 0", name="positive_reopen_policy_version"),
+    )
+    name: Mapped[str] = mapped_column(String(120))
+    version: Mapped[int] = mapped_column(Integer)
+    definition: Mapped[dict[str, object]] = mapped_column(JSONB)
+
+
+class ActiveServiceReopenPolicy(Base):
+    __tablename__ = "active_service_reopen_policies"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "policy_id"],
+            ["service_reopen_policies.organization_id", "service_reopen_policies.id"],
+        ),
+    )
+    organization_id: Mapped[UUID] = mapped_column(primary_key=True)
+    policy_id: Mapped[UUID]
+
+
+class ServiceReopening(TenantEntity, Base):
+    __tablename__ = "service_reopenings"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "request_id", "event_sequence"),
+        UniqueConstraint("organization_id", "resolution_id"),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "resolution_id"],
+            [
+                "service_resolutions.organization_id",
+                "service_resolutions.request_id",
+                "service_resolutions.id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "request_id", "event_sequence"],
+            [
+                "request_events.organization_id",
+                "request_events.request_id",
+                "request_events.sequence",
+            ],
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "policy_id"],
+            ["service_reopen_policies.organization_id", "service_reopen_policies.id"],
+        ),
+    )
+    request_id: Mapped[UUID]
+    resolution_id: Mapped[UUID]
+    event_sequence: Mapped[int] = mapped_column(Integer)
+    policy_id: Mapped[UUID]
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

@@ -95,6 +95,40 @@
         "title": "Approve",
         "type": "object"
       },
+      "ApproveReversal": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "approve_reversal",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "reversal_request_id": {
+            "format": "uuid",
+            "title": "Reversal Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "reversal_request_id"
+        ],
+        "title": "ApproveReversal",
+        "type": "object"
+      },
       "Assign": {
         "additionalProperties": false,
         "properties": {
@@ -241,6 +275,40 @@
           "action"
         ],
         "title": "Close",
+        "type": "object"
+      },
+      "CreateCorrection": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "create_correction",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "reversal_request_id": {
+            "format": "uuid",
+            "title": "Reversal Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "reversal_request_id"
+        ],
+        "title": "CreateCorrection",
         "type": "object"
       },
       "DecisionRead": {
@@ -417,6 +485,56 @@
         "title": "LeaveSubmission",
         "type": "object"
       },
+      "LifecyclePage": {
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "reopenings": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceReopeningRead"
+            },
+            "title": "Reopenings",
+            "type": "array"
+          },
+          "resolutions": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceResolutionRead"
+            },
+            "title": "Resolutions",
+            "type": "array"
+          },
+          "reversal_decisions": {
+            "items": {
+              "$ref": "#/components/schemas/ReversalDecisionRead"
+            },
+            "title": "Reversal Decisions",
+            "type": "array"
+          },
+          "reversal_requests": {
+            "items": {
+              "$ref": "#/components/schemas/ReversalRequestRead"
+            },
+            "title": "Reversal Requests",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reversal_requests",
+          "reversal_decisions",
+          "resolutions",
+          "reopenings",
+          "limit",
+          "offset"
+        ],
+        "title": "LifecyclePage",
+        "type": "object"
+      },
       "Login": {
         "additionalProperties": false,
         "properties": {
@@ -531,6 +649,80 @@
         "title": "Reject",
         "type": "object"
       },
+      "RejectReversal": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "reject_reversal",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "reversal_request_id": {
+            "format": "uuid",
+            "title": "Reversal Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "reversal_request_id"
+        ],
+        "title": "RejectReversal",
+        "type": "object"
+      },
+      "Reopen": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "reopen",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "resolution_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Id"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action"
+        ],
+        "title": "Reopen",
+        "type": "object"
+      },
       "RequestChanges": {
         "additionalProperties": false,
         "properties": {
@@ -600,6 +792,16 @@
       },
       "RequestDetail": {
         "properties": {
+          "active_reversal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReversalRequestRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "approval_policy_id": {
             "anyOf": [
               {
@@ -665,6 +867,18 @@
               }
             ]
           },
+          "correction_source_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correction Source Id"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -674,6 +888,16 @@
             "format": "uuid",
             "title": "Created By",
             "type": "string"
+          },
+          "current_resolution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceResolutionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "current_submission_sequence": {
             "anyOf": [
@@ -743,6 +967,18 @@
             "title": "Raw Text",
             "type": "string"
           },
+          "replacement_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacement Request Id"
+          },
           "resolution": {
             "anyOf": [
               {
@@ -753,6 +989,27 @@
               }
             ],
             "title": "Resolution"
+          },
+          "reversal_decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReversalDecisionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "service_cycle_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Cycle Sequence"
           },
           "status": {
             "$ref": "#/components/schemas/RequestStatus"
@@ -903,6 +1160,43 @@
         "title": "RequestRead",
         "type": "object"
       },
+      "RequestReversal": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "request_reversal",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "intent": {
+            "enum": [
+              "withdraw",
+              "correct"
+            ],
+            "title": "Intent",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "action",
+          "intent"
+        ],
+        "title": "RequestReversal",
+        "type": "object"
+      },
       "RequestStatus": {
         "enum": [
           "DRAFT",
@@ -919,6 +1213,8 @@
           "FINANCE_REVIEW",
           "APPROVED",
           "COMPLETED",
+          "REVERSAL_REVIEW",
+          "REVERSED",
           "REJECTED",
           "WITHDRAWN"
         ],
@@ -1001,6 +1297,125 @@
           "revision_id"
         ],
         "title": "Resubmit",
+        "type": "object"
+      },
+      "ReversalDecisionRead": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "organization_timezone": {
+            "title": "Organization Timezone",
+            "type": "string"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reversal_request_id": {
+            "format": "uuid",
+            "title": "Reversal Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reversal_request_id",
+          "actor_id",
+          "event_sequence",
+          "outcome",
+          "organization_timezone"
+        ],
+        "title": "ReversalDecisionRead",
+        "type": "object"
+      },
+      "ReversalPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReversalRequestRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "limit",
+          "offset"
+        ],
+        "title": "ReversalPage",
+        "type": "object"
+      },
+      "ReversalRequestRead": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "final_decision_id": {
+            "format": "uuid",
+            "title": "Final Decision Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "intent": {
+            "title": "Intent",
+            "type": "string"
+          },
+          "organization_timezone": {
+            "title": "Organization Timezone",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "submission_sequence": {
+            "title": "Submission Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "request_id",
+          "submission_sequence",
+          "final_decision_id",
+          "actor_id",
+          "event_sequence",
+          "intent",
+          "organization_timezone"
+        ],
+        "title": "ReversalRequestRead",
         "type": "object"
       },
       "Revise": {
@@ -1185,6 +1600,110 @@
         ],
         "title": "Role",
         "type": "string"
+      },
+      "ServiceReopeningRead": {
+        "properties": {
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "policy_id": {
+            "format": "uuid",
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "resolution_id": {
+            "format": "uuid",
+            "title": "Resolution Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "resolution_id",
+          "event_sequence",
+          "policy_id",
+          "expires_at"
+        ],
+        "title": "ServiceReopeningRead",
+        "type": "object"
+      },
+      "ServiceResolutionRead": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "captured_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured By"
+          },
+          "cycle_sequence": {
+            "title": "Cycle Sequence",
+            "type": "integer"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cycle_sequence",
+          "event_sequence",
+          "actor_id",
+          "at",
+          "body",
+          "captured_by",
+          "captured_at"
+        ],
+        "title": "ServiceResolutionRead",
+        "type": "object"
       },
       "Start": {
         "additionalProperties": false,
@@ -1461,6 +1980,18 @@
               }
             ],
             "title": "Decision Id"
+          },
+          "related_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Request Id"
           },
           "request_id": {
             "format": "uuid",
@@ -2891,6 +3422,202 @@
         ]
       }
     },
+    "/requests/{request_id}/lifecycle": {
+      "get": {
+        "operationId": "list_request_lifecycle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecyclePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Verified active identity required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Requester or role restriction"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request missing or not visible"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid input or unavailable department"
+          }
+        },
+        "summary": "List Request Lifecycle",
+        "tags": [
+          "Requests"
+        ]
+      }
+    },
     "/requests/{request_id}/revisions": {
       "get": {
         "operationId": "list_request_revisions",
@@ -3120,12 +3847,17 @@
                 "discriminator": {
                   "mapping": {
                     "approve": "#/components/schemas/Approve",
+                    "approve_reversal": "#/components/schemas/ApproveReversal",
                     "assign": "#/components/schemas/Assign",
                     "cancel": "#/components/schemas/Cancel",
                     "close": "#/components/schemas/Close",
+                    "create_correction": "#/components/schemas/CreateCorrection",
                     "process": "#/components/schemas/Process",
                     "reject": "#/components/schemas/Reject",
+                    "reject_reversal": "#/components/schemas/RejectReversal",
+                    "reopen": "#/components/schemas/Reopen",
                     "request_changes": "#/components/schemas/RequestChanges",
+                    "request_reversal": "#/components/schemas/RequestReversal",
                     "resolve": "#/components/schemas/Resolve",
                     "resubmit": "#/components/schemas/Resubmit",
                     "revise": "#/components/schemas/Revise",
@@ -3174,6 +3906,21 @@
                   },
                   {
                     "$ref": "#/components/schemas/Resubmit"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RequestReversal"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ApproveReversal"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectReversal"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateCorrection"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Reopen"
                   }
                 ],
                 "title": "Payload"
@@ -3372,6 +4119,157 @@
         "summary": "Transition Request",
         "tags": [
           "Requests"
+        ]
+      }
+    },
+    "/reversals": {
+      "get": {
+        "operationId": "list_reversals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReversalPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Verified active identity required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Active organization role required"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "title": "Detail",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "title": "Problem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid pagination"
+          }
+        },
+        "summary": "List Reversals",
+        "tags": [
+          "Reversals"
         ]
       }
     }

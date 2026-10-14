@@ -1,4 +1,4 @@
-"""Milestone 3's deterministic forward-only workflow table."""
+"""Deterministic workflows with explicit audited revision/reversal/work cycles."""
 
 from enum import StrEnum
 
@@ -22,9 +22,26 @@ class Action(StrEnum):
     REQUEST_CHANGES = "request_changes"
     REVISE = "revise"
     RESUBMIT = "resubmit"
+    REQUEST_REVERSAL = "request_reversal"
+    APPROVE_REVERSAL = "approve_reversal"
+    REJECT_REVERSAL = "reject_reversal"
+    CREATE_CORRECTION = "create_correction"
+    REOPEN = "reopen"
 
 
 EDGES: dict[tuple[T, S, Action], frozenset[S]] = {
+    **{
+        (kind, source, action): frozenset({target})
+        for kind in (T.EXPENSE, T.LEAVE)
+        for source, action, target in (
+            (S.APPROVED, Action.REQUEST_REVERSAL, S.REVERSAL_REVIEW),
+            (S.REVERSAL_REVIEW, Action.APPROVE_REVERSAL, S.REVERSED),
+            (S.REVERSAL_REVIEW, Action.REJECT_REVERSAL, S.APPROVED),
+            (S.REVERSED, Action.CREATE_CORRECTION, S.REVERSED),
+        )
+    },
+    (T.SERVICE, S.RESOLVED, Action.REOPEN): frozenset({S.REOPENED}),
+    (T.SERVICE, S.REOPENED, Action.START): frozenset({S.IN_PROGRESS}),
     **{
         (kind, state, Action.REQUEST_CHANGES): frozenset({S.NEEDS_INFO})
         for kind, states in (

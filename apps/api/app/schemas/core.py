@@ -161,7 +161,67 @@ class RevisionPage(ReadSchema):
     offset: int
 
 
+class ReversalRequestRead(ReadSchema):
+    id: UUID
+    request_id: UUID
+    submission_sequence: int
+    final_decision_id: UUID
+    actor_id: UUID
+    event_sequence: int
+    intent: str
+    organization_timezone: str
+
+
+class ReversalDecisionRead(ReadSchema):
+    id: UUID
+    reversal_request_id: UUID
+    actor_id: UUID
+    event_sequence: int
+    outcome: str
+    organization_timezone: str
+
+
+class ServiceResolutionRead(ReadSchema):
+    id: UUID
+    cycle_sequence: int
+    event_sequence: int
+    actor_id: UUID
+    at: datetime
+    body: str
+    captured_by: UUID | None
+    captured_at: datetime | None
+
+
+class ServiceReopeningRead(ReadSchema):
+    id: UUID
+    resolution_id: UUID
+    event_sequence: int
+    policy_id: UUID
+    expires_at: datetime
+
+
+class ReversalPage(ReadSchema):
+    items: list[ReversalRequestRead]
+    limit: int
+    offset: int
+
+
+class LifecyclePage(ReadSchema):
+    reversal_requests: list[ReversalRequestRead]
+    reversal_decisions: list[ReversalDecisionRead]
+    resolutions: list[ServiceResolutionRead]
+    reopenings: list[ServiceReopeningRead]
+    limit: int
+    offset: int
+
+
 class RequestDetail(RequestRead):
+    active_reversal: ReversalRequestRead | None = None
+    reversal_decision: ReversalDecisionRead | None = None
+    current_resolution: ServiceResolutionRead | None = None
+    service_cycle_sequence: int | None = None
+    replacement_request_id: UUID | None = None
+    correction_source_id: UUID | None = None
     current_submission_sequence: int | None = None
     proposed_revision: RevisionRead | None = None
     correction: ChangeRequestRead | None = None

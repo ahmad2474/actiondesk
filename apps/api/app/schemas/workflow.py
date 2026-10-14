@@ -75,6 +75,36 @@ class Resubmit(TransitionBase):
     revision_id: UUID
 
 
+class RequestReversal(TransitionBase):
+    action: Literal["request_reversal"]
+    intent: Literal["withdraw", "correct"]
+
+
+class ApproveReversal(TransitionBase):
+    action: Literal["approve_reversal"]
+    reversal_request_id: UUID
+
+
+class RejectReversal(TransitionBase):
+    action: Literal["reject_reversal"]
+    reversal_request_id: UUID
+
+
+class CreateCorrection(TransitionBase):
+    action: Literal["create_correction"]
+    reversal_request_id: UUID
+
+
+class Reopen(TransitionBase):
+    action: Literal["reopen"]
+    resolution_id: UUID | None = None
+
+
+class ServiceReopenPolicyDefinition(InputSchema):
+    schema_version: Literal[1]
+    window_seconds: int = Field(ge=3600, le=2592000, strict=True)
+
+
 class Triage(TransitionBase):
     action: Literal["triage"]
 
@@ -129,7 +159,12 @@ Transition = Annotated[
     | Cancel
     | RequestChanges
     | Revise
-    | Resubmit,
+    | Resubmit
+    | RequestReversal
+    | ApproveReversal
+    | RejectReversal
+    | CreateCorrection
+    | Reopen,
     Field(discriminator="action"),
 ]
 transition_adapter: TypeAdapter[Transition] = TypeAdapter(Transition)
@@ -175,6 +210,7 @@ class TransitionOutcome(ReadSchema):
     version: int
     status: RequestStatus
     decision_id: UUID | None
+    related_request_id: UUID | None = None
 
 
 class TransitionRead(ReadSchema):

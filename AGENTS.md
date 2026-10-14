@@ -4,7 +4,7 @@
 
 - Authoritative specification: `docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf`, especially Sections 16.1-16.7. Use `docs/ActionDesk_PRD_Technical_Architecture_v1.pdf` only as non-conflicting background.
 - Follow explicit user instructions. Do not infer policy from incomplete PDF extraction; stop and report extraction failure.
-- Phase 0 and Phase 1 milestones 1–3 are complete, live-verified, committed/pushed and CI green as confirmed by the project owner. Milestone 4 is explicitly authorized: expense/leave correction, immutable revision/submission evidence, current-policy resubmission and full reapproval. Authentication and Redis/Celery behavior stay unchanged. No next milestone, AI, notifications, frontend workflow UI, deployment changes, or commits are authorized.
+- Phase 0 and Phase 1 milestones 1–4 are complete, live-verified, committed/pushed and CI green as confirmed by the project owner. Milestone 5 is explicitly authorized: independent approval reversal review, linked correction drafts and explicitly configured service reopening with immutable work-cycle evidence. Authentication and Redis/Celery behavior stay unchanged. No next milestone, AI, notifications, frontend workflow UI, deployment changes, or commits are authorized.
 - `docs/PHASE_0_PLAN.md` records proposed implementation choices and open decisions. Proposals are not approved requirements. When approval arrives, update the recorded status and decisions.
 
 ## Architecture and scope
@@ -101,11 +101,11 @@
 
 - Before changing code, identify the authorized phase and relevant PRD sections. Record unresolved policy questions rather than inventing rules.
 - Keep changes focused, reviewable, and accompanied by relevant documentation and validation. Do not broaden scope or install speculative future dependencies.
-- Stop at Phase 1 milestone 4. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
+- Stop at Phase 1 milestone 5. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
 
 ## Approved milestone 3 policy
 
-- Service cancellation stops before work starts; assigned cancellation requires department manager/admin review. Leave APPROVED is terminal. Reversal/reopen, service clarification, delegation and reassignment are deferred. Expense/leave correction is authorized by the milestone 4 decisions below.
+- Service cancellation stops before work starts; assigned cancellation requires department manager/admin review. Milestone 5 supersedes terminal leave approval and deferred reversal/reopen only within its approved boundaries below. Service clarification, delegation and reassignment remain deferred. Expense/leave correction follows the milestone 4 decisions below.
 - Every expense requires manager approval, with finance approval strictly above an explicitly configured policy threshold. No universal numeric threshold or default active policy is selected.
 - Prefer a valid explicit employee manager; department fallback requires policy permission. Multiple eligible managers are one-of candidates. Missing candidates block submission without partial writes.
 - Snapshot candidates at submission and recheck current role, active user, tenant and recorded relationship at decision time. Never silently substitute candidates. Admin alone cannot approve expense/leave.
@@ -125,3 +125,16 @@
 - Superseded unacted candidates lose nomination-only visibility; actual decision/correction authors retain only active-role audit visibility. No blanket sensitive-content admin scope.
 - Additive migration preserves original evidence. Lazy capture of managed milestone 3 submissions requires consistent existing trusted evidence, records the actual capture actor/time and never fabricates historical facts. Unvalidated legacy records stay blocked.
 - Exact retries preserve the original outcome without duplicate snapshots, plans, closures or events; current authentication/visibility still apply. No commit or next milestone is authorized.
+
+
+## Approved milestone 5 policy
+
+- Expense APPROVED and unprocessed may enter REVERSAL_REVIEW; COMPLETED is terminal. Leave reversal initiation and acceptance require a date strictly before start_date in the current organization timezone. No retrospective reversal.
+- Requester or a currently eligible candidate from the final required step of the current approved submission may initiate reversal. Only an independent currently eligible final-step candidate may accept or deny: neither requester nor initiator may decide. Missing independent candidates leave review blocked. Admin/processing roles alone confer no reversal authority.
+- REVERSAL_REVIEW blocks processing. Acceptance makes the source REVERSED terminal; denial restores the same APPROVED authorization without another approval or changed approved_at. All original approvals remain immutable.
+- Only the requester may create one new linked correction DRAFT after an accepted correct-intent reversal. Copy organization, owner, type, department, title, original raw intake and due_at. New request/submission/approval identities and current-policy fresh review are required; no old approval is reused.
+- RESOLVED service requests may reopen to REOPENED under explicit immutable/versioned organization policy, then start a new IN_PROGRESS cycle. CLOSED remains terminal. Requester, current department manager or admin may reopen; preserve valid active same-department assignee, assignment and due_at. Every cycle needs its own immutable resolution before closure.
+- Approved pilot reopening window is explicit configuration of 604800 seconds (7 days), inclusive from the latest actual resolution. Valid range is 3600–2592000 seconds. No absent/invalid-policy application default. Evaluate time after locking; database guards additionally prevent backdated expiry/date bypass.
+- Reversal requests/decisions, correction links, service resolutions/reopenings and policy versions are append-only and tenant-qualified. Current pointers require matching transition evidence. Lazy compatibility capture requires sufficient existing trusted evidence; no fabricated history/backfill. Legacy unvalidated records remain blocked. Downgrade refuses evidence loss.
+- Existing Principal, sessions, CSRF, tenant/version/idempotency architecture remains unchanged. Exact retries return durable original outcomes and current authorized detail without duplicating effects or changing later state.
+- No refunds, financial adjustments, payroll/calendar undo, completed-expense correction, closed-service reopen, delegation/reassignment, service clarification, AI, notifications, frontend UI, analytics/SLA, deployment, Phase 2 work, commits or pushes are authorized.
