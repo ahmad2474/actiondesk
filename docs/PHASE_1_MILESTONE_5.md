@@ -1,5 +1,7 @@
 # Phase 1 Milestone 5: Reversal and service reopening
 
+Owner status: complete, committed/pushed and CI green, as confirmed before Milestone 6A. The implementation-pass observations below are historical.
+
 Scope: owner-approved implementation only, under PRD v1.1 Sections 16.1–16.7 and [ADR 0005](adr/0005-request-lifecycle.md). Phase 0 and milestones 1–4 are owner-confirmed complete, committed/pushed and CI green. These milestone 5 changes are local and uncommitted; no push, deployment or next milestone is authorized.
 
 ## Behavior and authorization

@@ -14,9 +14,10 @@
     "test:web": "playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.63.0",
-    "typescript": "5.9.3",
-    "openapi-typescript": "^7.10.1"
+    "openapi-typescript": "^7.10.1",
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=22"

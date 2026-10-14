@@ -258,7 +258,7 @@ def test_schema_validation_and_minimal_state_model() -> None:
     with pytest.raises(ValidationError):
         UserCreate(email="invalid", name="User", roles=frozenset({Role.EMPLOYEE}))
     with pytest.raises(ValidationError):
-        UserCreate(email="user@example.invalid", name="User", roles=frozenset())
+        UserCreate(email="user@actiondesk.ahmad", name="User", roles=frozenset())
     data = payload((Principal(uuid4(), uuid4()), uuid4()))
     for field, value in (
         ("title", " "),

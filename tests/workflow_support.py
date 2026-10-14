@@ -103,7 +103,7 @@ def add_actor(
                 organization_id=actor.organization_id,
                 department_id=department,
                 name="Synthetic actor",
-                email=f"{actor.user_id}@example.invalid",
+                email=f"{actor.user_id}@actiondesk.ahmad",
                 status="active",
             )
         )

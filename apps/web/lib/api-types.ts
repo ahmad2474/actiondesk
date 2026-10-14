@@ -1,3 +1,9 @@
-import type { paths } from "@actiondesk/contracts";
-export type HealthResponse = paths["/health"]["get"]["responses"][200]["content"]["application/json"];
-export type ReadinessResponse = paths["/ready"]["get"]["responses"][200]["content"]["application/json"];
+import type { components } from "@actiondesk/contracts";
+export type Auth = components["schemas"]["AuthRead"];
+export type User = Auth["user"];
+export type RequestRecord = components["schemas"]["RequestRead"];
+export type RequestDetail = components["schemas"]["RequestDetail"];
+export type RequestPage = components["schemas"]["RequestPage"];
+export type Revisions = components["schemas"]["RevisionPage"];
+export type Lifecycle = components["schemas"]["LifecyclePage"];
+export type Status = RequestRecord["status"];

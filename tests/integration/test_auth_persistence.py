@@ -39,7 +39,7 @@ def account(database: Engine) -> dict[str, str]:
         assert user is not None
         auth.replace_password(session, user, password_hasher().hash(password))
         user.status = "active"
-    return {"email": "employee@actiondesk.invalid", "password": password}
+    return {"email": "employee@actiondesk.ahmad", "password": password}
 
 
 @pytest.fixture
@@ -150,7 +150,7 @@ def test_session_constraints_and_email_uniqueness(database: Engine) -> None:
         connection.execute(
             text(
                 "INSERT INTO users(id,organization_id,email,name) "
-                "VALUES(:id,:org,' Employee@ActionDesk.Invalid ','Duplicate')"
+                "VALUES(:id,:org,' Employee@ActionDesk.Ahmad ','Duplicate')"
             ),
             {"id": fixture_id("collision"), "org": fixture_id("organization")},
         )
@@ -159,9 +159,7 @@ def test_session_constraints_and_email_uniqueness(database: Engine) -> None:
         other = Organization(slug="other", name="Other synthetic")
         session.add(other)
         session.flush()
-        session.add(
-            User(organization_id=other.id, email="employee@actiondesk.invalid", name="Other")
-        )
+        session.add(User(organization_id=other.id, email="employee@actiondesk.ahmad", name="Other"))
     with pytest.raises(IntegrityError), Session(database) as session, session.begin():
         now = auth.utc_now()
         session.add(
@@ -184,7 +182,7 @@ def test_email_collision_migration_fails_without_rewriting(database: Engine) -> 
         connection.execute(
             text(
                 "INSERT INTO users(id,organization_id,email,name) "
-                "VALUES(:id,:org,'EMPLOYEE@ACTIONDESK.INVALID','Collision')"
+                "VALUES(:id,:org,'EMPLOYEE@ACTIONDESK.AHMAD','Collision')"
             ),
             {"id": fixture_id("collision"), "org": fixture_id("organization")},
         )
@@ -203,7 +201,7 @@ def test_real_redis_login_throttle(database: Engine) -> None:
     settings.ip_limit = 2
     settings.account_limit = 10
     limiter = RedisLoginLimiter()
-    address, email = secrets.token_hex(16), f"{secrets.token_hex(16)}@example.invalid"
+    address, email = secrets.token_hex(16), f"{secrets.token_hex(16)}@actiondesk.ahmad"
     limiter.check(address, email)
     limiter.check(address, email)
     with pytest.raises(DomainError) as error:

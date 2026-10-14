@@ -1,4 +1,4 @@
-"""Explicit interactive local credential initialization; no seed passwords or reset flow."""
+"""Explicit interactive local credential initialization/reset; no HTTP reset flow."""
 
 import argparse
 import getpass
@@ -17,6 +17,11 @@ from app.services.passwords import password_hasher
 def main() -> None:
     parser = argparse.ArgumentParser(description="Initialize an existing local synthetic account")
     parser.add_argument("--email", help="Existing account in the configured local organization")
+    parser.add_argument(
+        "--reset-existing",
+        action="store_true",
+        help="Replace an initialized local password and revoke all of that user's sessions",
+    )
     parser.add_argument(
         "--benchmark", action="store_true", help="Measure configured Argon2 profile"
     )
@@ -43,10 +48,13 @@ def main() -> None:
     if password != confirmation or not 12 <= len(password) <= 1024:
         raise SystemExit("Passwords must match and contain 12–1024 characters")
     try:
-        set_initial_password(get_engine(), args.email, password)
+        set_initial_password(get_engine(), args.email, password, reset_existing=args.reset_existing)
     except ValueError as error:
         raise SystemExit(str(error)) from None
-    print("Selected local account initialized. Normal seeds remain unchanged.")
+    if args.reset_existing:
+        print("Selected local password replaced and all prior sessions revoked.")
+    else:
+        print("Selected local account initialized. Normal seeds remain unchanged.")
 
 
 if __name__ == "__main__":

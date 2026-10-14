@@ -19,6 +19,7 @@ SEED_AT = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def fixture_id(name: str) -> UUID:
+    # Historical UUID namespace: keep stable when changing visible login identifiers.
     return uuid5(NAMESPACE_URL, f"https://actiondesk.invalid/seed/{name}")
 
 
@@ -58,7 +59,7 @@ def seed(engine: Engine, count: Literal[10, 100] = 100) -> None:
                     "id": user,
                     "organization_id": org,
                     "name": f"Fictional {role.value.title()}",
-                    "email": f"{role.value}@actiondesk.invalid",
+                    "email": f"{role.value}@actiondesk.ahmad",
                     "department_id": department,
                     "password_hash": None,
                     "status": "inactive",

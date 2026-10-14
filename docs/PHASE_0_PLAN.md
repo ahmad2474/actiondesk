@@ -154,3 +154,8 @@ The owner confirms Phase 0 and milestones 1–3 accepted, migrated/live-verified
 ## Current authorization update (milestone 5)
 
 The owner confirms Phase 0 and milestones 1–4 complete, committed/pushed and CI green. Milestone 5 implementation is explicitly approved: unprocessed expense/pre-start leave reversal, independent final-step review, one linked requester correction draft with fresh review, and policy-controlled service reopening with retained assignment and separate resolution evidence per cycle. The approved pilot window is configured as 7 days, inclusive, with bounds 1 hour–30 days; no application default or automatic policy activation. Original approvals and completion boundaries are preserved. Earlier reversal/reopen deferral is superseded only for this scope. All listed non-goals and no-commit/no-push instruction remain in force. See ADR 0005 and PHASE_1_MILESTONE_5.md for implementation and local validation evidence.
+
+
+## Current authorization update (milestone 6A)
+
+The owner confirms milestones 1–5 complete, pushed and CI green. Milestone 6A authorizes the approved custom light design system, role-union responsive shell, existing real auth and owned-request read data, explicitly fictional workflow previews, and accessibility/screenshot checks. No new backend capability/directory contract, web workflow mutation, notification/AI, deployment, commit/push or 6B work is authorized. See ADR 0006 and PHASE_1_MILESTONE_6A.md.

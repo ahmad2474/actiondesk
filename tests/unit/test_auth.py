@@ -126,7 +126,7 @@ def test_login_cookie_current_user_and_protected_creation(
 def test_generic_invalid_login(kind: str, auth_case: dict[str, str], unit_engine: Engine) -> None:
     data = {"email": auth_case["email"], "password": auth_case["password"]}
     if kind == "unknown":
-        data["email"] = "unknown@example.invalid"
+        data["email"] = "unknown@actiondesk.ahmad"
     elif kind == "wrong":
         data["password"] = secrets.token_urlsafe(24)
     else:
@@ -296,18 +296,18 @@ def test_email_case_and_tenant_isolation(auth_case: dict[str, str], unit_engine:
                 name="Duplicate",
             )
         )
-    assert canonical_email(" User@Example.Invalid ") == "user@example.invalid"
+    assert canonical_email(" User@ActionDesk.Ahmad ") == "user@actiondesk.ahmad"
     from app.domain.types import Role
     from app.schemas.core import UserCreate
 
     assert (
         UserCreate(
-            email=" User@Example.Invalid ", name="Synthetic", roles=frozenset({Role.EMPLOYEE})
+            email=" User@ActionDesk.Ahmad ", name="Synthetic", roles=frozenset({Role.EMPLOYEE})
         ).email
-        == "user@example.invalid"
+        == "user@actiondesk.ahmad"
     )
     with pytest.raises(ValueError):
-        canonical_email("\tuser@example.invalid")
+        canonical_email("\tuser@actiondesk.ahmad")
 
 
 def test_redis_failure_and_no_authenticated_dependency(
@@ -457,3 +457,44 @@ def test_explicit_initialization_and_password_revocation(
             assert user is not None
             auth.replace_password(session, user, PasswordStub().hash(secrets.token_urlsafe(24)))
         assert first.get("/auth/me").status_code == second.get("/auth/me").status_code == 401
+
+
+def test_explicit_local_password_reset_revokes_sessions_and_preserves_disabled_status(
+    auth_case: dict[str, str], unit_engine: Engine
+) -> None:
+    replacement = secrets.token_urlsafe(24)
+    with TestClient(app, base_url=ORIGIN) as first, TestClient(app, base_url=ORIGIN) as second:
+        sign_in(first, auth_case)
+        sign_in(second, auth_case)
+        auth.set_initial_password(unit_engine, auth_case["email"], replacement, reset_existing=True)
+        assert first.get("/auth/me").status_code == second.get("/auth/me").status_code == 401
+        assert (
+            first.post(
+                "/auth/login",
+                json={"email": auth_case["email"], "password": auth_case["password"]},
+                headers={"Origin": ORIGIN},
+            ).status_code
+            == 401
+        )
+        sign_in(first, {**auth_case, "password": replacement})
+    with Session(unit_engine) as session, session.begin():
+        user = session.get(User, UUID(auth_case["user"]))
+        assert user is not None
+        user.status = "inactive"
+    auth.set_initial_password(
+        unit_engine, auth_case["email"], secrets.token_urlsafe(24), reset_existing=True
+    )
+    with Session(unit_engine) as session:
+        user = session.get(User, UUID(auth_case["user"]))
+        assert user is not None and user.status == "inactive"
+    with pytest.raises(ValueError):
+        auth.set_initial_password(
+            unit_engine, "unknown@actiondesk.ahmad", replacement, reset_existing=True
+        )
+    new, _ = provision(unit_engine, UUID(get_auth_settings().organization_slug))
+    with Session(unit_engine) as session:
+        uninitialized = session.get(User, new.user_id)
+        assert uninitialized is not None
+        email = uninitialized.email
+    with pytest.raises(ValueError):
+        auth.set_initial_password(unit_engine, email, replacement, reset_existing=True)

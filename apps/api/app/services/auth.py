@@ -238,7 +238,9 @@ def logout(engine: Engine, token: str | None) -> None:
         ) from None
 
 
-def set_initial_password(engine: Engine, email: str, password: str) -> None:
+def set_initial_password(
+    engine: Engine, email: str, password: str, *, reset_existing: bool = False
+) -> None:
     """Explicit local CLI only; never called by normal bootstrap or request endpoints."""
     encoded = password_hasher().hash(password)
     with Session(engine) as session, session.begin():
@@ -251,10 +253,12 @@ def set_initial_password(engine: Engine, email: str, password: str) -> None:
             )
             .with_for_update(of=User)
         )
-        if user is None or user.password_hash is not None:
-            raise ValueError("Select an existing account without initialized credentials")
+        if user is None or (user.password_hash is not None) != reset_existing:
+            requirement = "with" if reset_existing else "without"
+            raise ValueError(f"Select an existing account {requirement} initialized credentials")
         replace_password(session, user, encoded)
-        user.status = UserStatus.ACTIVE
+        if not reset_existing:
+            user.status = UserStatus.ACTIVE
 
 
 def replace_password(session: Session, user: User, encoded: str) -> None:

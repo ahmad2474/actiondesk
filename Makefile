@@ -60,7 +60,7 @@ compose-check:
 	docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.local.yaml config --quiet
 
 test-web:
-	npm run test:web
+	COMPOSE_FILES="$(COMPOSE_FILES)" uv run --frozen python scripts/test_web.py
 
 verify: lint typecheck test contracts-check compose-check
 	$(MAKE) dev

@@ -4,7 +4,7 @@
 
 - Authoritative specification: `docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf`, especially Sections 16.1-16.7. Use `docs/ActionDesk_PRD_Technical_Architecture_v1.pdf` only as non-conflicting background.
 - Follow explicit user instructions. Do not infer policy from incomplete PDF extraction; stop and report extraction failure.
-- Phase 0 and Phase 1 milestones 1–4 are complete, live-verified, committed/pushed and CI green as confirmed by the project owner. Milestone 5 is explicitly authorized: independent approval reversal review, linked correction drafts and explicitly configured service reopening with immutable work-cycle evidence. Authentication and Redis/Celery behavior stay unchanged. No next milestone, AI, notifications, frontend workflow UI, deployment changes, or commits are authorized.
+- Phase 0 and Phase 1 milestones 1–5 are complete, live-verified, committed/pushed and CI green as confirmed by the project owner. Milestone 6A is explicitly authorized: custom design system/shell, real existing authentication, real read-only owned requests/detail/evidence, isolated synthetic workflow previews, accessibility and visual checks. Authentication and Redis/Celery behavior stay unchanged. No Milestone 6B workflow mutations, AI, notifications, deployment changes, commits or pushes are authorized.
 - `docs/PHASE_0_PLAN.md` records proposed implementation choices and open decisions. Proposals are not approved requirements. When approval arrives, update the recorded status and decisions.
 
 ## Architecture and scope
@@ -101,7 +101,7 @@
 
 - Before changing code, identify the authorized phase and relevant PRD sections. Record unresolved policy questions rather than inventing rules.
 - Keep changes focused, reviewable, and accompanied by relevant documentation and validation. Do not broaden scope or install speculative future dependencies.
-- Stop at Phase 1 milestone 5. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
+- Stop at Phase 1 milestone 6A. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
 
 ## Approved milestone 3 policy
 
@@ -138,3 +138,13 @@
 - Reversal requests/decisions, correction links, service resolutions/reopenings and policy versions are append-only and tenant-qualified. Current pointers require matching transition evidence. Lazy compatibility capture requires sufficient existing trusted evidence; no fabricated history/backfill. Legacy unvalidated records remain blocked. Downgrade refuses evidence loss.
 - Existing Principal, sessions, CSRF, tenant/version/idempotency architecture remains unchanged. Exact retries return durable original outcomes and current authorized detail without duplicating effects or changing later state.
 - No refunds, financial adjustments, payroll/calendar undo, completed-expense correction, closed-service reopen, delegation/reassignment, service clarification, AI, notifications, frontend UI, analytics/SLA, deployment, Phase 2 work, commits or pushes are authorized.
+
+
+## Approved milestone 6A UI boundary
+
+- Warm-neutral/deep-teal, light mode, system sans, custom CSS tokens and scoped components. No full UI/state/form framework or branding project.
+- Unified role-union navigation is orientation only. Real login/me/logout and read-only owned-request/detail/evidence use unchanged backend Principal/session/CSRF rules. Never infer workflow authorization from roles/status/candidates. No optimistic state changes or automatic mutation retry.
+- Same-origin adapter uses a fixed server-only upstream and allowlisted auth/read paths; it exposes no request creation or transition mutation. Preserve HttpOnly/Origin/CSRF, no-store reads, and memory-only CSRF. No sensitive browser storage.
+- Workflow/create/revision/queue/action states are clearly isolated fictional previews, never blended into live API responses. No active-action capability or directory API is added; those require milestone 6B approval.
+- Approved dependencies: selected Radix dialog/alert-dialog/dropdown/tabs primitives, Lucide, and axe Playwright. No Themes, shadcn, Tailwind, React Query, Zustand, form library or Storybook. Record locks/justification in ADR 0006.
+- Verify desktop/laptop/tablet/mobile through 320px, long evidence, role unions, keyboard/focus/dialogs, contrast, reduced motion, session expiry, HTTP/network errors and screenshot consistency. Browser authentication checks use a disposable test database/account, never development credentials. Report any manual screen-reader or platform baseline limits honestly.

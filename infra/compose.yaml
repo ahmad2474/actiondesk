@@ -81,7 +81,7 @@ services:
       context: ..
       dockerfile: infra/docker/web.Dockerfile
     init: true
-    environment: {NEXT_TELEMETRY_DISABLED: '1'}
+    environment: {NEXT_TELEMETRY_DISABLED: '1', ACTIONDESK_API_URL: 'http://api:8000'}
     ports: ['127.0.0.1:${WEB_PORT:-3000}:3000']
     depends_on:
       api: {condition: service_healthy}

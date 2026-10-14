@@ -1,12 +1,12 @@
 # ActionDesk
 
-AI-assisted internal operations platform. Phase 0 provides the skeleton and local infrastructure. Phase 1 milestones 1 and 2 provide tenant-aware creation/reads and PostgreSQL opaque-cookie authentication. **Milestone 3** adds deterministic manual service, expense and leave transitions, durable approval evidence, participant visibility and scoped work queues. **Milestone 4** adds audited expense/leave correction and current-policy resubmission with full reapproval. **Milestone 5** adds independent reversal review, linked correction drafts and configured service reopening. AI, notifications and frontend workflow UI remain deferred.
+AI-assisted internal operations platform. Phase 0 provides the skeleton and local infrastructure. Phase 1 milestones 1 and 2 provide tenant-aware creation/reads and PostgreSQL opaque-cookie authentication. **Milestone 3** adds deterministic manual service, expense and leave transitions, durable approval evidence, participant visibility and scoped work queues. **Milestone 4** adds audited expense/leave correction and current-policy resubmission with full reapproval. **Milestone 5** adds independent reversal review, linked correction drafts and configured service reopening. **Milestone 6A** adds the responsive design system, real sign-in and owned-request read views, plus isolated synthetic workflow previews. Workflow mutations in the web UI remain deferred to 6B.
 
-**Current status:** Phase 0 and milestones 1–4 are owner-confirmed complete, committed/pushed with live verification and green CI. Milestone 5 is owner-approved; local implementation and verification are recorded in [its report](docs/PHASE_1_MILESTONE_5.md). Milestone 5 changes are uncommitted. Later milestones require explicit approval.
+**Current status:** Phase 0 and milestones 1–5 are owner-confirmed complete, committed/pushed and CI green. Milestone 6A is owner-approved; local UI implementation and verification are recorded in [its report](docs/PHASE_1_MILESTONE_6A.md). These changes are uncommitted. Milestone 6B is not authorized.
 
 ## Specification and decisions
 
-[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization stops at milestone 5; [the lifecycle ADR](docs/adr/0005-request-lifecycle.md) records its approved decisions.
+[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization stops at milestone 6A; [the frontend ADR](docs/adr/0006-application-shell.md) records its approved scope and dependencies.
 
 ## Local setup
 
@@ -61,7 +61,7 @@ make seed          # Default: 100 requests
 make seed-smoke    # Additive 10-request subset; never reduces existing data
 ```
 
-Seeds use stable UUIDs, fixed UTC timestamps, fictional `.invalid` addresses, and Decimal amounts serialized as strings. They run in one transaction under an advisory lock. Repeated commands preserve existing rows; they never reset requests or rewrite events. Fixture IDs and policy versions are immutable: intentional fixture changes should use new IDs/versions, not overwrite existing business history. Seed commands do not dispatch outbox jobs. No attachments or real customer data are present.
+Seeds use stable UUIDs, fixed UTC timestamps, fictional `@actiondesk.ahmad` login identifiers, and Decimal amounts serialized as strings. They run in one transaction under an advisory lock. Repeated commands preserve existing rows; they never reset requests or rewrite events. Fixture IDs and policy versions are immutable: intentional fixture changes should use new IDs/versions, not overwrite existing business history. Seed commands do not dispatch outbox jobs. No attachments or real customer data are present.
 
 ## Verification
 
@@ -86,7 +86,7 @@ make verify COMPOSE_FILES="-f infra/compose.yaml"
 
 Both verification commands leave their stack running. Use `make down` for the local configuration or `make down COMPOSE_FILES="-f infra/compose.yaml"` for the base-only configuration. Integration checks create/migrate a temporary PostgreSQL database and drop only that generated database. Each database test uses its own fresh disposable database. Tests verify independent 10/100-record seed paths, repeat snapshots, safe downgrade/upgrade, deployed tables/FKs/uniques/indexes, 16 cross-organization references, role separation, append-only events, model/migration drift, and live PostgreSQL/Redis readiness. They require the local database role's ability to create test databases; do not run with production connection strings.
 
-Browser smoke tests verify the served placeholder on desktop/mobile. Worker smoke checks ping and observes a no-op task success event; it does not claim durable job recovery. The CI workflow runs the same checks on Linux without AI keys. The project owner confirmed that GitHub Actions passed after the Compose mount split.
+Browser checks cover five sizes, real session/owned reads through a disposable test API, synthetic workflow previews, axe, keyboard/focus and screenshots. `make test-web` builds an isolated loopback web/test API and cleans up only its generated test database. It needs unused ports 3100/8010; stop any manually started test servers before running it. Worker smoke checks ping and observes a no-op task success event; it does not claim durable job recovery. The CI workflow runs the same checks on Linux without AI keys. The project owner confirmed that GitHub Actions passed after the Compose mount split.
 
 `/health` indicates process liveness independent of dependencies. `/ready` is 200 only when PostgreSQL responds, the database revision is the expected Alembic head, and Redis responds; otherwise it returns 503 with sanitized component statuses. It does not verify worker liveness; Compose has a separate worker probe. Each API response includes a validated/generated `X-Request-ID`. No request bodies, credentials, or dependency exception text are returned by health checks.
 
@@ -115,11 +115,14 @@ Comparator tests deliberately change or remove artifact files to verify detectio
 - Missing `openapi-typescript` or npm lock mismatch: restore registry access and rerun `make setup`; review the updated npm lock, regenerate with `make contracts`, then run `make contracts-check`.
 - Contract drift: regenerate with the installed intended package, review the schema/type diff, and rerun the checks.
 - User cannot log in: initialize an explicitly selected existing local account as documented below. Seeds remain inactive/passwordless; normal bootstrap does not enable login. Invalid credentials, inactive users and unknown users return the same 401. Missing/expired/revoked cookies also return 401; CSRF/origin errors return 403.
+- Login repeatedly reaches `?reason=javascript` with scripts enabled: verify the console reports `[HMR] connected`. Next's development React debug stream uses HMR; a blocked `/_next/hmr` connection can leave the HTML readable but Client Components unhydrated. `allowedDevOrigins` explicitly includes the documented `127.0.0.1` host because Compose binds Next to `0.0.0.0`. Keep this narrow and retain the safe POST fallback. Restart web after config changes. With the development stack running, `npx playwright test tests/e2e/foundation.spec.ts` checks actual hydration/JSON POST as well as visual accessibility at all five sizes; the isolated production browser runner alone does not exercise HMR.
 - `make down` stops containers and preserves data. `docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml down --volumes` deletes local data and the local Next.js cache and is an explicit destructive reset, never part of normal startup.
 
 No AWS deployment, external AI integration, real-user onboarding, or paid services are part of this foundation.
 
 ## Local authentication
+
+Local account identifiers use `@actiondesk.ahmad` (for example, `employee@actiondesk.ahmad`). They do not require a purchased domain or send mail. The application still opens at `http://127.0.0.1:3000`. The historical seed UUID namespace stays unchanged so existing account/request identities and ownership are preserved.
 
 After starting the stack, initialize a chosen existing synthetic account interactively:
 
@@ -129,7 +132,17 @@ docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml
 
 The command prompts privately for a new password and confirmation. It requires a local terminal/database, refuses unknown or already initialized accounts, and never changes normal seed/bootstrap behavior. For a base-only stack, omit the local override. Run the same module with `--benchmark` instead of `--email` to measure the configured Argon2 profile without printing credentials.
 
-`POST /auth/login` accepts JSON email/password and requires an exact allowed `Origin`. It sets an HttpOnly session cookie and returns a credential-free user, current roles, absolute expiry and session-bound CSRF token. `GET /auth/me` returns the same information without CSRF requirements. `POST /auth/logout` requires Origin/CSRF for a valid session and revokes only that session. Auth responses are not cached. There is no refresh endpoint or auth UI.
+To rotate an already initialized synthetic local account (including a compromised password), use the explicit local-only reset option:
+
+```sh
+docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml exec api uv run --no-sync python -m app.core.init_account --email employee@actiondesk.ahmad --reset-existing
+```
+
+Enter a new password privately at the prompts; never put it in command arguments or environment variables. Reset requires an existing initialized account in the configured organization, preserves its active/inactive status and atomically revokes all its sessions. It does not require or reuse the old password. No HTTP password-reset endpoint is added. Remove any previously leaked login URL from browser history and address retained copies in local logs; changing the password cannot erase earlier URL exposure.
+
+Login uses JSON POST after hydration and an explicit native POST fallback before hydration/when JavaScript fails. The fallback discards the body without parsing, logging or forwarding it and sends a fixed 303 to `/login?reason=javascript`; it never attempts authentication. Enable JavaScript/reload before trying again. No credential is included in the fallback URL or error text.
+
+`POST /auth/login` accepts JSON email/password and requires an exact allowed `Origin`. It sets an HttpOnly session cookie and returns a credential-free user, current roles, absolute expiry and session-bound CSRF token. `GET /auth/me` returns the same information without CSRF requirements. `POST /auth/logout` requires Origin/CSRF for a valid session and revokes only that session. Auth responses are not cached. There is no refresh endpoint. The web login/account menu use existing login/me/logout through the narrow same-origin adapter.
 
 Cookies use `__Host-actiondesk_session` with Secure/HttpOnly/SameSite=Lax/Path=/ and no Domain under HTTPS. Explicit loopback HTTP development uses `actiondesk_session_local` without Secure. `ACTIONDESK_AUTH_ALLOWED_ORIGINS` is an exact JSON origin list; update it when changing local ports. No wildcard credentialed CORS or trusted identity headers are supported. Uvicorn proxy-header interpretation is disabled in this Compose configuration.
 
@@ -141,7 +154,7 @@ Argon2 profile settings are `ACTIONDESK_AUTH_ARGON_MEMORY_KIB`, `ACTIONDESK_AUTH
 
 `POST /requests/{request_id}/transitions` requires the existing session, allowed Origin, CSRF token and a UUID `Idempotency-Key`. Its discriminated body includes `action`, `expected_version` and a nonempty `reason`. `submit` additionally requires typed `data` with `type: expense` or `type: leave`; other actions have specific fields (`assignee_id`, `resolution`, `approval_id` or `reference`). See OpenAPI for the exact schemas. Monetary values are JSON strings with at most two fractional digits; current supported currency is PKR. There is no arbitrary status PATCH.
 
-New service requests begin SUBMITTED and progress through triage, assignment, start, resolution and closure. Expense/leave drafts submit and route atomically into manager review with two version increments/events. Leave approval is terminal. Expense processing requires all required decisions and a finance actor distinct from the requester. No external payment is performed.
+New service requests begin SUBMITTED and progress through triage, assignment, start, resolution and closure. Expense/leave drafts submit and route atomically into manager review with two version increments/events. Leave reversal is permitted only within the explicitly approved pre-start boundary. Expense processing requires all required decisions and a finance actor distinct from the requester. No external payment is performed.
 
 `GET /requests` defaults to owned records. `scope=participant`, `assigned`, `triage` and `processing` expose only authorized work. `GET /approvals` paginates currently actionable snapshotted steps; future steps and ineligible candidates are excluded. Expense/leave content has no blanket admin visibility.
 
@@ -163,3 +176,12 @@ The report emits only request IDs and evidence blockers, returns 1 when blocked,
 `GET /requests/{id}/revisions?limit=20&offset=0` returns scoped snapshot history, related submissions (including immutable policy version/definition and historical approval evidence), and correction links. Request detail distinguishes structured_fields (submitted) from proposed_revision and identifies the current submission and correction. Sensitive history follows the same participant rules; old unacted nominees cannot retain access solely through nomination.
 
 Migration 0005_revisions is additive. Review it before running `make migrate` on the development database; validation uses disposable databases. Existing managed milestone 3 records are captured lazily only when trusted evidence validates. Legacy fixtures remain blocked from approval/revision activation. See [the revision design](docs/PHASE_1_MILESTONE_4_DESIGN.md) and [ADR 0004](docs/adr/0004-request-revisions.md).
+
+
+## Milestone 6A web interface
+
+The live web app uses `/login`, `/`, `/requests`, and owned `/requests/{id}`. The web process uses server-only `ACTIONDESK_API_URL` (Compose: `http://api:8000`; direct local development default: `http://127.0.0.1:8000`). Browser calls use `/api/actiondesk`; session cookies, actual browser Origin and memory-only CSRF are preserved. Its POST allowlist contains only login/logout, so no workflow creation or transition can be sent through the UI adapter.
+
+Approvals, Service Work, Finance Processing and New Request explain their current preview-only scope. `/preview` is a public **fictional design preview**, not an authentication bypass or alternate data source. It has no production identities or business mutations. Never enter real personal/financial data into a preview. Read-only details preserve current/historical evidence and display IDs where the API does not provide authorized participant/department names.
+
+`make test-web` runs `scripts/test_web.py`: production build, disposable real PostgreSQL API with loopback-only test controls, loopback Next.js server, all five browser projects and cleanup. This command replaces the old placeholder smoke command and works with base/local Compose selection. Raw `npm run test:web` tests an already running app; real-auth cases require `BROWSER_API_URL` pointing to the dedicated fixture, otherwise they explicitly skip. Never point it at production credentials. OS-specific reference screenshots exist for the locally verified platform; other platforms emit and compare consecutive captures until reviewed platform baselines are established. Logs are kept in ignored `.local/web-checks`; credentials are generated in memory and never printed.

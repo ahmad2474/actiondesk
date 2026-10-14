@@ -1,0 +1,19 @@
+# ADR 0006: ActionDesk shell and read-only frontend
+
+Status: accepted by explicit owner approval for Phase 1 Milestone 6A.
+
+Use warm-neutral surfaces, deep teal actions, system typography, modest radii, semantic status labels, semantic desktop tables/mobile cards and responsive navigation. CSS custom properties define tokens; component styles are scoped to the application root through a CSS Module, including Radix portals in the body. No copied theme, gradients or UI/state/form framework. A minimal wordmark replaces a custom-logo project.
+
+Server Components compose authenticated read screens; client components handle login, account/drawer/dialog interactions and synthetic form previews. Generated OpenAPI types remain the transport source. Monetary strings use BigInt for exact grouping, never floating-point business math; date-only values remain date-only. Event timestamps are explicitly shown in UTC because organization display configuration is not exposed.
+
+A fixed server-only upstream and narrow same-origin adapter preserve cookies, actual Origin, CSRF, request IDs and Set-Cookie. POST supports only existing login/logout. Request list scope is fixed to mine. Live detail composition additionally requires current ownership; backend reads still enforce their own authenticated tenant/participant rules. No new backend models/routes, fake trusted actors, request creation or transition mutations are introduced. Authenticated fetches are no-store, pages are dynamic, CSRF stays in transient memory and no sensitive browser storage is used. Logout uses a fresh real session context; restored pages verify sessions and remove content on expiry, without action replay.
+
+The current workflow panel states recorded status and read-only scope; it does not derive available actions. Workflow queues/forms/dialogs appear only in the explicitly fictional `/preview` workspace. Synthetic data is never merged with live responses. Earlier decisions, submissions, proposed revisions, reversal reviews, correction links, service cycles and events remain separate. Reasons/IDs/times are taken from authoritative evidence. Missing records or unavailable snapshot pages are not reconstructed.
+
+Approved and pinned additions: @radix-ui/react-dialog 1.3.1, @radix-ui/react-alert-dialog 1.2.1, @radix-ui/react-dropdown-menu 2.2.1, @radix-ui/react-tabs 1.2.1, lucide-react 1.57.0 and development-only @axe-core/playwright 4.13.0. Radix supplies accessible interaction primitives; Lucide supplies consistent SVGs; axe integrates with existing Playwright. Existing Next/React versions are unchanged. No other runtime/state/form/design library added.
+
+Browser checks use a real disposable PostgreSQL database with unchanged application auth/services and Redis transport. Test-only fault/expiry controls are defined exclusively in the test server, not runtime. Each fixture gets an independent auth secret and raised bounded test login limits for throughput; real throttle semantics remain covered by existing integration tests. API/web bind to loopback ports 8010/3100. The runner cleans up only its named processes/container/generated database.
+
+Five viewport projects cover desktop, laptop, tablet, mobile and 320px. Screenshot references are OS-specific because system fonts differ. Existing platform references are compared; unbaselined platforms check repeated-render consistency and attach images for review instead of silently creating references. WCAG 2.2 AA is the target, supported by axe, keyboard/focus tests and visual inspection, not a certification claim.
+
+Milestone 6B remains deferred: authoritative action capabilities, safe blocking explanations, scoped display-name/department/assignment lookups, enriched queue reads and complete live mutation wiring. No AI, notifications, analytics/SLA, uploads, payments, deployment or next milestone work.

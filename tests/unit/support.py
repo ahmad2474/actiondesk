@@ -56,7 +56,7 @@ def provision(engine: Engine, organization_id: UUID | None = None) -> tuple[Prin
                 id=user,
                 organization_id=organization,
                 name="Synthetic",
-                email=f"{user}@example.invalid",
+                email=f"{user}@actiondesk.ahmad",
                 department_id=department,
                 status="active",
             )

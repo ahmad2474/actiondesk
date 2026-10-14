@@ -321,7 +321,7 @@ def test_tenant_relationships_reject_foreign_organization(database: Engine, case
         connection.execute(
             text(
                 "INSERT INTO users(id,organization_id,email,name) "
-                "VALUES(:id,:org,'other@actiondesk.invalid','Other')"
+                "VALUES(:id,:org,'other@actiondesk.ahmad','Other')"
             ),
             {"id": foreign_user, "org": foreign_org},
         )
