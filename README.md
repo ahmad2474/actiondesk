@@ -2,7 +2,7 @@
 
 AI-assisted internal operations platform. This repository currently implements the **Phase 0 foundation only**: a Next.js placeholder, FastAPI health endpoints, tenant-aware PostgreSQL schema, deterministic synthetic fixtures, Redis, and a side-effect-free Celery worker. Authentication and business workflows are not implemented.
 
-**Current status:** implementation and partial verification; Phase 0 is not complete. See [actual verification results](docs/PHASE_0_RESULTS.md). The implementation environment blocks Docker, local port binding, and dependency downloads; the Python lockfile, intended generator installation, npm lock reconciliation, and live database/worker checks remain pending.
+**Current status:** Phase 0 is complete. The local development stack, CI-equivalent base stack, and GitHub Actions foundation workflow passed, as confirmed by the project owner. See [verification results and closeout evidence](docs/PHASE_0_RESULTS.md). Phase 1 requires explicit approval.
 
 ## Specification and decisions
 
@@ -18,9 +18,9 @@ make setup
 make dev
 ```
 
-`make setup` runs `uv sync`, `npm install`, and Chromium installation. Setup resolves manifest changes and writes the supported uv/npm lockfiles; review and commit those files locally. CI and Docker builds use frozen/clean installs (`uv sync --frozen`, `npm ci`). Currently `uv.lock` is absent and `package-lock.json` still reflects the earlier dependency set: `openapi-typescript` is newly declared but cannot be downloaded. Registry access is required to reconcile both locks; no substitute lockfile was fabricated.
+`make setup` runs `uv sync`, `npm install`, and Chromium installation. The repository includes `uv.lock` and `package-lock.json`. Setup can update these lockfiles when manifests change; review any resulting diff. CI and Docker builds use frozen/clean installs (`uv sync --frozen`, `npm ci`).
 
-After setup, **`make dev` is the one command to start the complete local stack**. It builds images, starts PostgreSQL and Redis, runs Alembic and the 100-request seed, then starts API, worker, and web. It waits for health checks; bootstrap failures block dependent services. This startup has not yet been exercised against Docker in the restricted environment.
+After setup, **`make dev` is the one command to start the complete local stack**. It builds images, starts PostgreSQL and Redis, runs Alembic and the 100-request seed, then starts API, worker, and web. It waits for health checks; bootstrap failures block dependent services. The local development startup and CI-equivalent base startup have both passed verification.
 
 `infra/compose.yaml` is the base configuration and has no host source mounts. Local Make targets add `infra/compose.local.yaml`, retaining source bind mounts/hot reload and the local Next.js cache volume. CI runs `make verify COMPOSE_FILES="-f infra/compose.yaml"`; recursive Make targets inherit that selection. The web image keeps `USER node` and its image-owned writable source directory, so CI never replaces it with a checkout owned by a different host UID. No root runtime or workspace permission changes are needed. Failure diagnostics and all health probes remain enabled.
 
@@ -30,14 +30,6 @@ After setup, **`make dev` is the one command to start the complete local stack**
 - OpenAPI: http://127.0.0.1:8000/openapi.json and `/docs`
 
 The example database password is for local synthetic development only. PostgreSQL and Redis have no host-published ports. API/web bind to localhost. Do not deploy this Compose file or share its credentials externally. Seed users are inactive, have no passwords, and cannot log in.
-
-Initialize the authorized local repository once the environment permits writing `.git`:
-
-```sh
-git init -b main
-```
-
-No remote repository is configured or authorized.
 
 ## Architecture
 
@@ -84,9 +76,15 @@ make test-web
 npm run build
 ```
 
-`make verify` runs these checks as one sequence. It leaves the local stack running. Integration checks create/migrate a temporary PostgreSQL database and drop only that generated database. Each database test uses its own fresh disposable database. Tests verify independent 10/100-record seed paths, repeat snapshots, safe downgrade/upgrade, deployed tables/FKs/uniques/indexes, 16 cross-organization references, role separation, append-only events, model/migration drift, and live PostgreSQL/Redis readiness. They require the local database role's ability to create test databases; do not run with production connection strings.
+`make verify` runs these checks as one sequence using the base + local override. To reproduce CI without host source mounts, select the base configuration explicitly:
 
-Browser smoke tests verify the served placeholder on desktop/mobile. Worker smoke checks ping and observes a no-op task success event; it does not claim durable job recovery. The CI workflow runs the same checks on Linux without AI keys. It has not been run on GitHub because no remote is authorized.
+```sh
+make verify COMPOSE_FILES="-f infra/compose.yaml"
+```
+
+Both verification commands leave their stack running. Use `make down` for the local configuration or `make down COMPOSE_FILES="-f infra/compose.yaml"` for the base-only configuration. Integration checks create/migrate a temporary PostgreSQL database and drop only that generated database. Each database test uses its own fresh disposable database. Tests verify independent 10/100-record seed paths, repeat snapshots, safe downgrade/upgrade, deployed tables/FKs/uniques/indexes, 16 cross-organization references, role separation, append-only events, model/migration drift, and live PostgreSQL/Redis readiness. They require the local database role's ability to create test databases; do not run with production connection strings.
+
+Browser smoke tests verify the served placeholder on desktop/mobile. Worker smoke checks ping and observes a no-op task success event; it does not claim durable job recovery. The CI workflow runs the same checks on Linux without AI keys. The project owner confirmed that GitHub Actions passed after the Compose mount split.
 
 `/health` indicates process liveness independent of dependencies. `/ready` is 200 only when PostgreSQL responds, the database revision is the expected Alembic head, and Redis responds; otherwise it returns 503 with sanitized component statuses. It does not verify worker liveness; Compose has a separate worker probe. Each API response includes a validated/generated `X-Request-ID`. No request bodies, credentials, or dependency exception text are returned by health checks.
 
@@ -99,15 +97,15 @@ make contracts-check # Compare without changing generated files
 
 The generation command imports FastAPI without connecting to PostgreSQL/Redis. Source schemas remain Pydantic/OpenAPI; frontend types are generated, not separately hand-maintained.
 
-The temporary converter has been removed. `scripts/contracts.mjs` now calls the approved `openapi-typescript` Node API. Generation and drift checks fail if that dependency is missing; there is no fallback. Installation is currently blocked by npm registry DNS, so TypeScript regeneration with the intended package is **not yet verified**. The stored TypeScript file is legacy output from the preceding pass and must be regenerated after installation.
+The temporary converter has been removed. `scripts/contracts.mjs` now calls the approved `openapi-typescript` Node API. Generation and drift checks fail if that dependency is missing; there is no fallback. TypeScript contracts are generated from the actual FastAPI OpenAPI schema. Generation and drift checks are included in the passing foundation workflow.
 
-Comparator tests deliberately change or remove artifact files to verify detection without overwriting them. Real-generator tests additionally mutate an exported FastAPI schema and test CLI exit status; these are explicitly skipped when `openapi-typescript` is absent and must run before Phase 0 completion.
+Comparator tests deliberately change or remove artifact files to verify detection without overwriting them. Real-generator tests additionally mutate an exported FastAPI schema and test CLI exit status; these are skipped when `openapi-typescript` is absent. Install the approved dependencies before verification; a missing generator also makes `make contracts-check` fail.
 
 ## Troubleshooting
 
 - Docker socket denied or daemon unavailable: start Docker Desktop and run in an environment allowed to access its socket. `make compose-check` validates configuration without a daemon but does not prove startup.
-- DNS/registry errors: setup needs access to PyPI, npm, and container registries. Resolve connectivity, then rerun `make setup`. Full cached-only backend installation is not available in the implementation environment.
-- Missing `uv.lock`: run `make setup` with registry access; review the generated lock. Backend Docker builds and CI intentionally require it.
+- DNS/registry errors: setup needs access to PyPI, npm, and container registries. Resolve connectivity, then rerun `make setup`.
+- Missing `uv.lock`: restore the tracked lockfile from Git. Backend Docker builds and CI intentionally require it; intentional dependency changes require regenerating and reviewing the lock.
 - Port binding denied: local execution needs permission to listen on localhost. Choose available `WEB_PORT`/`API_PORT` in `.env`; for browser tests set `WEB_BASE_URL` accordingly.
 - Bootstrap exits: inspect `make logs` for migration/seed failure. Do not bypass migration ordering or use `create_all`.
 - Readiness 503: inspect component statuses and Compose service health; rerun `make migrate` for a revision mismatch after reviewing migrations. Do not edit `alembic_version` manually.
@@ -115,6 +113,6 @@ Comparator tests deliberately change or remove artifact files to verify detectio
 - Missing `openapi-typescript` or npm lock mismatch: restore registry access and rerun `make setup`; review the updated npm lock, regenerate with `make contracts`, then run `make contracts-check`.
 - Contract drift: regenerate with the installed intended package, review the schema/type diff, and rerun the checks.
 - User cannot log in: Phase 0 has no authentication feature. Do not enable seed passwords as a workaround.
-- `make down` stops containers and preserves data. `docker compose --env-file .env -f infra/compose.yaml down --volumes` deletes local data and is an explicit destructive reset, never part of normal startup.
+- `make down` stops containers and preserves data. `docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml down --volumes` deletes local data and the local Next.js cache and is an explicit destructive reset, never part of normal startup.
 
-No AWS, external AI, remote Git writes, real-user onboarding, or paid services are part of this foundation.
+No AWS deployment, external AI integration, real-user onboarding, or paid services are part of this foundation.
