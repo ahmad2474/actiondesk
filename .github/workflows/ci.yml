@@ -31,7 +31,9 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - name: Configure synthetic local stack
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          python3 scripts/init_auth_config.py
       - name: Run foundation verification
         run: make verify COMPOSE_FILES="-f infra/compose.yaml"
       - name: Service diagnostics on failure

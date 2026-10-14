@@ -4,7 +4,7 @@
 
 - Authoritative specification: `docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf`, especially Sections 16.1-16.7. Use `docs/ActionDesk_PRD_Technical_Architecture_v1.pdf` only as non-conflicting background.
 - Follow explicit user instructions. Do not infer policy from incomplete PDF extraction; stop and report extraction failure.
-- Phase 0 is complete. Phase 1 milestone 1 is authorized: core domain/persistence, typed schemas, and request create/get/list only. No approvals, finance processing, cancellation/reversal/reopening, AI, notifications, frontend workflows, AWS deployment, paid services, real customer data, or commits are authorized for this milestone.
+- Phase 0 and Phase 1 milestone 1 are complete. Milestone 2 is authorized: PostgreSQL opaque sessions, Argon2id login, CSRF/cookies, login-only Redis throttling, current-user/logout, case-insensitive email uniqueness, and explicit local account initialization. No milestone 3, approvals, AI, notifications, frontend auth UI, deployment changes, or commits are authorized.
 - `docs/PHASE_0_PLAN.md` records proposed implementation choices and open decisions. Proposals are not approved requirements. When approval arrives, update the recorded status and decisions.
 
 ## Architecture and scope
@@ -101,4 +101,4 @@
 
 - Before changing code, identify the authorized phase and relevant PRD sections. Record unresolved policy questions rather than inventing rules.
 - Keep changes focused, reviewable, and accompanied by relevant documentation and validation. Do not broaden scope or install speculative future dependencies.
-- Stop at Phase 1 milestone 1. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
+- Stop at Phase 1 milestone 2. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.

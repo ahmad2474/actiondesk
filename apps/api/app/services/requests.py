@@ -77,9 +77,6 @@ def create_request(
 ) -> RequestDetail:
     with session.begin():
         validate_principal(session, principal)
-        if payload.requester_id != principal.user_id:
-            # Do not reveal whether another user exists, including across organizations.
-            raise DomainError(403, "Forbidden", "Requests can only be created for yourself.")
         department = session.scalar(
             select(Department.id).where(
                 Department.organization_id == principal.organization_id,

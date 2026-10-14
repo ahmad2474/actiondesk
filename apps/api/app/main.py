@@ -1,4 +1,6 @@
 import re
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Literal
 from uuid import uuid4
 
@@ -8,12 +10,16 @@ from pydantic import BaseModel
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import JSONResponse
 
+from app.api.auth import router as auth_router
+from app.api.cors import AuthCORSMiddleware
 from app.api.requests import router as requests_router
+from app.core.auth_config import get_auth_settings
 from app.core.config import get_settings
 from app.domain.errors import DomainError
 from app.schemas.core import Problem
+from app.services.passwords import dummy_hash
 
-EXPECTED_REVISION = "0002_request_foundation"
+EXPECTED_REVISION = "0003_auth_sessions"
 
 
 class Health(BaseModel):
@@ -31,8 +37,24 @@ class Readiness(BaseModel):
     checks: DependencyChecks
 
 
-app = FastAPI(title="ActionDesk API", version="0.0.1")
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    get_auth_settings().validate_runtime()
+    dummy_hash()  # Warm the comparable verification path before accepting logins.
+    yield
+
+
+app = FastAPI(title="ActionDesk API", version="0.0.1", lifespan=lifespan)
 app.include_router(requests_router)
+app.include_router(auth_router)
+app.add_middleware(
+    AuthCORSMiddleware,
+    allow_origins=[],
+    allow_credentials=True,
+    allow_methods=["GET", "HEAD", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-CSRF-Token", "Idempotency-Key", "X-Request-ID"],
+    expose_headers=["X-Request-ID", "Retry-After"],
+)
 
 
 @app.exception_handler(DomainError)
@@ -40,6 +62,7 @@ async def domain_error(request: Request, error: DomainError) -> JSONResponse:
     return JSONResponse(
         status_code=error.status,
         media_type="application/problem+json",
+        headers=error.headers,
         content=Problem(title=error.title, status=error.status, detail=error.detail).model_dump(),
     )
 
@@ -62,6 +85,8 @@ async def request_id(request: Request, call_next: RequestResponseEndpoint) -> Re
     identifier = supplied if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", supplied) else str(uuid4())
     response = await call_next(request)
     response.headers["X-Request-ID"] = identifier
+    if request.url.path.startswith("/auth/"):
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 

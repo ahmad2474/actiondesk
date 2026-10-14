@@ -98,6 +98,14 @@ def test_readiness_matrix(
 
 def test_only_milestone_one_routes() -> None:
     paths = main.app.openapi()["paths"]
-    assert set(paths) == {"/health", "/ready", "/requests", "/requests/{request_id}"}
+    assert set(paths) == {
+        "/health",
+        "/ready",
+        "/requests",
+        "/requests/{request_id}",
+        "/auth/login",
+        "/auth/logout",
+        "/auth/me",
+    }
     assert set(paths["/requests"]) == {"get", "post"}
     assert set(paths["/requests/{request_id}"]) == {"get"}

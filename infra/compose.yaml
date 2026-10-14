@@ -38,7 +38,23 @@ services:
       postgres: {condition: service_healthy}
   api:
     <<: *backend
-    command: [uv, run, --no-sync, uvicorn, app.main:app, --host, 0.0.0.0, --port, '8000', --reload, --no-access-log]
+    environment: &api-environment
+      <<: *backend-environment
+      ACTIONDESK_AUTH_SECRET: ${ACTIONDESK_AUTH_SECRET:-}
+      ACTIONDESK_AUTH_ORGANIZATION_SLUG: ${ACTIONDESK_AUTH_ORGANIZATION_SLUG:-synthetic-demo}
+      ACTIONDESK_AUTH_COOKIE_SECURE: ${ACTIONDESK_AUTH_COOKIE_SECURE:-false}
+      ACTIONDESK_AUTH_ALLOWED_ORIGINS: ${ACTIONDESK_AUTH_ALLOWED_ORIGINS:-["http://127.0.0.1:3000","http://127.0.0.1:8000"]}
+      ACTIONDESK_AUTH_IDLE_SECONDS: ${ACTIONDESK_AUTH_IDLE_SECONDS:-1800}
+      ACTIONDESK_AUTH_ABSOLUTE_SECONDS: ${ACTIONDESK_AUTH_ABSOLUTE_SECONDS:-28800}
+      ACTIONDESK_AUTH_TOUCH_SECONDS: ${ACTIONDESK_AUTH_TOUCH_SECONDS:-300}
+      ACTIONDESK_AUTH_ARGON_MEMORY_KIB: ${ACTIONDESK_AUTH_ARGON_MEMORY_KIB:-65536}
+      ACTIONDESK_AUTH_ARGON_TIME_COST: ${ACTIONDESK_AUTH_ARGON_TIME_COST:-3}
+      ACTIONDESK_AUTH_ARGON_PARALLELISM: ${ACTIONDESK_AUTH_ARGON_PARALLELISM:-4}
+      ACTIONDESK_AUTH_IP_LIMIT: ${ACTIONDESK_AUTH_IP_LIMIT:-20}
+      ACTIONDESK_AUTH_IP_WINDOW_SECONDS: ${ACTIONDESK_AUTH_IP_WINDOW_SECONDS:-60}
+      ACTIONDESK_AUTH_ACCOUNT_LIMIT: ${ACTIONDESK_AUTH_ACCOUNT_LIMIT:-10}
+      ACTIONDESK_AUTH_ACCOUNT_WINDOW_SECONDS: ${ACTIONDESK_AUTH_ACCOUNT_WINDOW_SECONDS:-900}
+    command: [uv, run, --no-sync, uvicorn, app.main:app, --host, 0.0.0.0, --port, '8000', --reload, --no-access-log, --no-proxy-headers]
     ports: ['127.0.0.1:${API_PORT:-8000}:8000']
     depends_on:
       bootstrap: {condition: service_completed_successfully}
@@ -79,7 +95,7 @@ services:
     <<: *backend
     profiles: [checks]
     environment:
-      <<: *backend-environment
+      <<: *api-environment
       ACTIONDESK_ENVIRONMENT: test
     command: [uv, run, --no-sync, pytest, tests/integration, -v]
     depends_on:

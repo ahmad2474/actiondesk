@@ -1,6 +1,6 @@
 # Phase 1 milestone 1: domain and persistence foundation
 
-Status: implemented within the authorized scope; real PostgreSQL verification is blocked in this execution environment. This is not completion of Phase 1. No commit was made.
+Status: complete, verified on live PostgreSQL, committed and pushed, as confirmed by the project owner before milestone 2. The checks below retain the original sandbox implementation-pass observations; their environment blockers are historical, not outstanding milestone 1 work. This is not completion of all Phase 1 milestones.
 
 ## Scope and specification
 

@@ -1,12 +1,12 @@
 # ActionDesk
 
-AI-assisted internal operations platform. Phase 0 provides the Next.js placeholder, health endpoints, tenant-aware PostgreSQL schema, deterministic synthetic fixtures, Redis, and a side-effect-free Celery worker. **Phase 1 milestone 1** adds the request creation/read persistence slice. Login, approvals, AI, notifications, and frontend workflows are not implemented.
+AI-assisted internal operations platform. Phase 0 provides the Next.js placeholder, health endpoints, tenant-aware PostgreSQL schema, deterministic synthetic fixtures, Redis, and a side-effect-free Celery worker. **Phase 1 milestone 2** adds PostgreSQL cookie sessions and local password authentication to the request creation/read persistence slice. Approvals, AI, notifications, and frontend workflows are not implemented.
 
-**Current status:** Phase 0 is complete; its stack and CI verification remains recorded in [Phase 0 results](docs/PHASE_0_RESULTS.md). Phase 1 milestone 1 is authorized and implemented, with live PostgreSQL verification pending because this execution environment blocks Docker/socket access. See [milestone scope, API boundary, and actual checks](docs/PHASE_1_MILESTONE_1.md). Further milestones require explicit approval.
+**Current status:** Phase 0 and milestone 1 are accepted and live-verified by the project owner. Milestone 2 code is implemented; dependency restoration and live verification remain blocked in this execution environment. See [milestone 2 results and host steps](docs/PHASE_1_MILESTONE_2.md). Registry access is needed to regenerate `uv.lock` and install Argon2 before starting this revision. Further milestones require explicit approval.
 
 ## Specification and decisions
 
-[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization is limited to milestone 1.
+[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Phase 1 authorization is limited to milestone 2.
 
 ## Local setup
 
@@ -18,7 +18,7 @@ make setup
 make dev
 ```
 
-`make setup` runs `uv sync`, `npm install`, and Chromium installation. The repository includes `uv.lock` and `package-lock.json`. Setup can update these lockfiles when manifests change; review any resulting diff. CI and Docker builds use frozen/clean installs (`uv sync --frozen`, `npm ci`).
+`make setup` initializes missing auth settings in ignored `.env`, then runs `uv sync`, `npm install`, and Chromium installation. Existing secrets are preserved; no passwords are generated or seeded. The repository includes `uv.lock` and `package-lock.json`. Setup can update these lockfiles when manifests change; review any resulting diff. CI and Docker builds use frozen/clean installs (`uv sync --frozen`, `npm ci`).
 
 After setup, **`make dev` is the one command to start the complete local stack**. It builds images, starts PostgreSQL and Redis, runs Alembic and the 100-request seed, then starts API, worker, and web. It waits for health checks; bootstrap failures block dependent services. The local development startup and CI-equivalent base startup have both passed verification.
 
@@ -29,7 +29,7 @@ After setup, **`make dev` is the one command to start the complete local stack**
 - API readiness: http://127.0.0.1:8000/ready
 - OpenAPI: http://127.0.0.1:8000/openapi.json and `/docs`
 
-The example database password is for local synthetic development only. PostgreSQL and Redis have no host-published ports. API/web bind to localhost. Do not deploy this Compose file or share its credentials externally. Seed users are inactive, have no passwords, and cannot log in.
+The example database password is for local synthetic development only. PostgreSQL and Redis have no host-published ports. API/web bind to localhost. Do not deploy this Compose file or share its credentials externally. Seed users remain inactive and passwordless until explicitly initialized. Normal bootstrap never activates accounts.
 
 ## Architecture
 
@@ -51,9 +51,9 @@ Web/API/worker are separate processes in one monorepo. API and worker share the 
 
 The schema includes organizations, departments, users, a fixed role catalog, role assignments, employee managers, department managers, versioned approval policies, requests, typed fixture fields stored as JSONB, immutable request events, approvals, and an initial outbox table. Milestone 1 requires a department on each request and a matching history event for creation or status/version changes at transaction commit.
 
-Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. The existing approvals schema identifies a role-qualified approver and constrains requester separation; no approval execution is implemented. Policy definitions identify roles/scopes and thresholds rather than individual users. Policy execution, login, cancellation/reversal, reopening, and payment-processing actions are deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and [milestone 1 notes](docs/PHASE_1_MILESTONE_1.md) for the request API boundary.
+Roles are employee, manager, finance, and admin, with multiple assignments per user. Manager relationships reference manager-role assignments. Composite organization foreign keys prevent cross-organization references. The existing approvals schema identifies a role-qualified approver and constrains requester separation; no approval execution is implemented. Policy definitions identify roles/scopes and thresholds rather than individual users. Policy execution, cancellation/reversal, reopening, and payment-processing actions are deferred. See [tenant-integrity review](docs/TENANT_INTEGRITY.md) for the relationship map and [milestone 1 notes](docs/PHASE_1_MILESTONE_1.md) for the request API boundary.
 
-Request endpoints are `POST /requests`, `GET /requests/{request_id}`, and `GET /requests`. They deny access with 401 until a trusted identity verifier is implemented; only tests install identity overrides. Client-supplied identity headers never grant access. Creation requires a UUID `Idempotency-Key` and a requester matching the trusted identity. Service requests start at `SUBMITTED`; expense/leave requests start at `DRAFT`. Get/list are restricted to the requester's own organization and records. There are no update or transition endpoints.
+Request endpoints are `POST /requests`, `GET /requests/{request_id}`, and `GET /requests`. They require a valid session cookie. Client-supplied identity headers never grant access; `requester_id` is no longer accepted in creation input. Creation derives requester and organization from the trusted session and requires a UUID `Idempotency-Key`, allowed `Origin`, and `X-CSRF-Token`. Service requests start at `SUBMITTED`; expense/leave requests start at `DRAFT`. Get/list are restricted to the requester's own organization and records. There are no update or transition endpoints.
 
 ```sh
 make migrate
@@ -114,7 +114,25 @@ Comparator tests deliberately change or remove artifact files to verify detectio
 - Changed PostgreSQL password with an existing volume: initialization variables only apply to a new database. Restore the local value or intentionally manage the existing database credentials.
 - Missing `openapi-typescript` or npm lock mismatch: restore registry access and rerun `make setup`; review the updated npm lock, regenerate with `make contracts`, then run `make contracts-check`.
 - Contract drift: regenerate with the installed intended package, review the schema/type diff, and rerun the checks.
-- User cannot log in: Phase 0 has no authentication feature. Do not enable seed passwords as a workaround.
+- User cannot log in: initialize an explicitly selected existing local account as documented below. Seeds remain inactive/passwordless; normal bootstrap does not enable login. Invalid credentials, inactive users and unknown users return the same 401. Missing/expired/revoked cookies also return 401; CSRF/origin errors return 403.
 - `make down` stops containers and preserves data. `docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml down --volumes` deletes local data and the local Next.js cache and is an explicit destructive reset, never part of normal startup.
 
 No AWS deployment, external AI integration, real-user onboarding, or paid services are part of this foundation.
+
+## Local authentication
+
+After restoring the dependency lock and starting the stack, initialize a chosen existing synthetic account interactively:
+
+```sh
+docker compose --env-file .env -f infra/compose.yaml -f infra/compose.local.yaml exec api uv run --no-sync python -m app.core.init_account --email '<existing-account-email>'
+```
+
+The command prompts privately for a new password and confirmation. It requires a local terminal/database, refuses unknown or already initialized accounts, and never changes normal seed/bootstrap behavior. For a base-only stack, omit the local override. Run the same module with `--benchmark` instead of `--email` to measure the configured Argon2 profile without printing credentials.
+
+`POST /auth/login` accepts JSON email/password and requires an exact allowed `Origin`. It sets an HttpOnly session cookie and returns a credential-free user, current roles, absolute expiry and session-bound CSRF token. `GET /auth/me` returns the same information without CSRF requirements. `POST /auth/logout` requires Origin/CSRF for a valid session and revokes only that session. Auth responses are not cached. There is no refresh endpoint or auth UI.
+
+Cookies use `__Host-actiondesk_session` with Secure/HttpOnly/SameSite=Lax/Path=/ and no Domain under HTTPS. Explicit loopback HTTP development uses `actiondesk_session_local` without Secure. `ACTIONDESK_AUTH_ALLOWED_ORIGINS` is an exact JSON origin list; update it when changing local ports. No wildcard credentialed CORS or trusted identity headers are supported. Uvicorn proxy-header interpretation is disabled in this Compose configuration.
+
+Sessions expire after 30 minutes from the last persisted activity and at an immutable eight-hour absolute deadline. Touch writes happen only after five minutes: idle expiry is conservative and may occur up to five minutes earlier than the last unpersisted activity. An expired session is never revived by touching it. Login replaces only a session represented by the current cookie; other devices remain active. Disabling an account revokes all its sessions; explicit credential replacement must use the transactional password service. Rehashing the same password on login preserves other devices.
+
+Argon2 profile settings are `ACTIONDESK_AUTH_ARGON_MEMORY_KIB`, `ACTIONDESK_AUTH_ARGON_TIME_COST` and `ACTIONDESK_AUTH_ARGON_PARALLELISM` (initial defaults 65536/3/4). Auth secret, origin and session settings are API-only; the worker needs no auth secret. Redis limits login attempts only (initial defaults 20/IP/minute and 10/account/15 minutes). Redis failure returns sanitized 503 for login and does not affect existing session authentication.

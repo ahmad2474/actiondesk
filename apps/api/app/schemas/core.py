@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+from app.domain.email import canonical_email
 from app.domain.types import RequestStatus, RequestType, Role, UserStatus
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -29,6 +30,13 @@ class UserCreate(InputSchema):
     department_id: UUID | None = None
     roles: frozenset[Role] = Field(min_length=1)
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value: object) -> str:
+        if not isinstance(value, str):
+            raise ValueError("Invalid email identifier")
+        return canonical_email(value)
+
 
 class UserRead(ReadSchema):
     id: UUID
@@ -52,7 +60,6 @@ class DepartmentRead(ReadSchema):
 
 
 class RequestCreate(InputSchema):
-    requester_id: UUID
     department_id: UUID
     type: RequestType
     title: Name

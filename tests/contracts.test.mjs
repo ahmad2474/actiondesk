@@ -46,7 +46,7 @@ const needsGenerator = { skip: generatorInstalled ? false : "BLOCKED: openapi-ty
 test("real FastAPI schema generates reproducible TypeScript with intended package", needsGenerator, async t => {
   const directory = temporaryDirectory(t);
   const document = exportSchema();
-  assert.deepEqual(Object.keys(document.paths).sort(), ["/health", "/ready", "/requests", "/requests/{request_id}"]);
+  assert.deepEqual(Object.keys(document.paths).sort(), ["/auth/login", "/auth/logout", "/auth/me", "/health", "/ready", "/requests", "/requests/{request_id}"]);
   const first = await generateArtifacts(document);
   assert.deepEqual(await generateArtifacts(document), first);
   assert.match(first[TYPES_FILE], /get_health/);

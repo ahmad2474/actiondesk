@@ -45,7 +45,6 @@ def client(database: Engine) -> Iterator[TestClient]:
 
 def payload(kind: str = "service") -> dict[str, str]:
     return {
-        "requester_id": str(fixture_id("user/employee")),
         "department_id": str(fixture_id("department")),
         "type": kind,
         "title": "Synthetic API request",
@@ -84,7 +83,7 @@ def test_request_creation_history_retry_and_reads(
         assert connection.scalar(text("SELECT count(*) FROM outbox_events")) == 0
 
 
-@pytest.mark.parametrize("field,status", [("requester_id", 403), ("department_id", 422)])
+@pytest.mark.parametrize("field,status", [("requester_id", 422), ("department_id", 422)])
 def test_invalid_references_leave_no_records(
     client: TestClient, database: Engine, field: str, status: int
 ) -> None:

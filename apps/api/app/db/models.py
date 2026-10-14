@@ -60,6 +60,7 @@ class Department(TenantEntity, Base):
 
 class User(TenantEntity, Base):
     __tablename__ = "users"
+    email: Mapped[str] = mapped_column(String(254))
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
         UniqueConstraint("organization_id", "email"),
@@ -67,8 +68,13 @@ class User(TenantEntity, Base):
             ["organization_id", "department_id"], ["departments.organization_id", "departments.id"]
         ),
         CheckConstraint("status IN ('active', 'inactive')", name="user_status"),
+        Index(
+            "uq_users_org_email_canonical",
+            "organization_id",
+            func.lower(func.btrim(email)),
+            unique=True,
+        ),
     )
-    email: Mapped[str] = mapped_column(String(254))
     name: Mapped[str] = mapped_column(String(200))
     department_id: Mapped[UUID | None]
     password_hash: Mapped[str | None] = mapped_column(Text)
@@ -81,6 +87,25 @@ class RoleDefinition(Base):
 
     __tablename__ = "roles"
     name: Mapped[Role] = mapped_column(ROLE, primary_key=True)
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "user_id"], ["users.organization_id", "users.id"]),
+        CheckConstraint("expires_at > created_at", name="session_positive_lifetime"),
+        CheckConstraint("last_seen_at >= created_at", name="session_seen_after_creation"),
+        Index("ix_auth_sessions_org_user", "organization_id", "user_id"),
+        Index("ix_auth_sessions_expiry", "expires_at"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    organization_id: Mapped[UUID]
+    user_id: Mapped[UUID]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class RoleAssignment(Base):

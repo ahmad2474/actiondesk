@@ -20,6 +20,7 @@ def snapshot(engine: Engine) -> list[object]:
     result: list[object] = []
     with engine.connect() as connection:
         for table in [
+            "auth_sessions",
             "roles",
             "organizations",
             "departments",

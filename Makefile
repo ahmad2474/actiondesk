@@ -5,6 +5,7 @@ export UV_CACHE_DIR := $(CURDIR)/.cache/uv
 
 .PHONY: setup dev down logs seed seed-smoke migrate lint typecheck test test-integration test-web worker-smoke contracts contracts-check compose-check verify
 setup:
+	python3 scripts/init_auth_config.py
 	uv sync
 	npm install --no-audit --no-fund
 	npx playwright install chromium

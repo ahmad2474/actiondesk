@@ -57,6 +57,9 @@ def test_local_mounts_do_not_replace_image_owned_files_in_ci() -> None:
         assert not base[name]["healthcheck"].get("disable", False)
     assert base["web"].get("user") is None
     assert local["web"].get("user") is None
+    assert "ACTIONDESK_AUTH_SECRET" not in base["worker"]["environment"]
+    assert "--no-proxy-headers" in base["api"]["command"]
+    assert base["api"]["environment"]["ACTIONDESK_AUTH_ARGON_MEMORY_KIB"] == "65536"
     users = [
         line.split()[1]
         for line in Path("infra/docker/web.Dockerfile").read_text().splitlines()
