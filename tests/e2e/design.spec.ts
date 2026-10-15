@@ -90,6 +90,14 @@ test.describe("synthetic design previews", () => {
     await expect(input).toHaveAttribute("readonly", "");
     await expect(dialog).not.toContainText("preview"); // Shared inspection UI has no workflow/preview boilerplate.
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    // Verify autofocus above, then capture the keyboard-ready copy state. Chromium's
+    // focused, selected native textarea can repaint rounded border/outline corners
+    // between captures even with identical geometry and no running animations.
+    await input.evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(0, 0));
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "Close", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "Copy full identifier" })).toBeFocused();
     await checkScreenshot(page, info, "identifier-dialog.png", false);
     await dialog.getByRole("button", { name: "Copy full identifier" }).click();
     await expect(dialog.getByRole("status")).toContainText("Copied full identifier");
