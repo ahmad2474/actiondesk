@@ -15,6 +15,7 @@ from app.api.auth import router as auth_router
 from app.api.cors import AuthCORSMiddleware
 from app.api.requests import router as requests_router
 from app.api.reversals import router as reversals_router
+from app.api.work_queues import router as work_queues_router
 from app.core.auth_config import get_auth_settings
 from app.core.config import get_settings
 from app.domain.errors import DomainError
@@ -51,6 +52,7 @@ app.include_router(requests_router)
 app.include_router(auth_router)
 app.include_router(approvals_router)
 app.include_router(reversals_router)
+app.include_router(work_queues_router)
 app.add_middleware(
     AuthCORSMiddleware,
     allow_origins=[],
@@ -89,8 +91,13 @@ async def request_id(request: Request, call_next: RequestResponseEndpoint) -> Re
     identifier = supplied if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", supplied) else str(uuid4())
     response = await call_next(request)
     response.headers["X-Request-ID"] = identifier
-    if request.url.path.startswith("/auth/"):
+    if request.url.path.startswith(
+        ("/auth/", "/requests", "/approvals", "/reversals", "/work-queues")
+    ):
         response.headers["Cache-Control"] = "no-store"
+        vary = response.headers.get("Vary", "")
+        if "cookie" not in {entry.strip().lower() for entry in vary.split(",")}:
+            response.headers["Vary"] = f"{vary}, Cookie" if vary else "Cookie"
     return response
 
 

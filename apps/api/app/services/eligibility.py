@@ -3,11 +3,12 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
     ApprovalCandidate,
+    Department,
     DepartmentManager,
     EmployeeManager,
     Request,
@@ -77,3 +78,43 @@ def candidate_eligible(
     return candidate.routing_source == "department_manager" and department_manager(
         session, actor, record.department_id, lock=lock
     )
+
+
+def assignee_query(record: Request) -> Select[tuple[User]]:
+    """Choices use exactly the tenant/department/active-role boundary used by assignment."""
+    from sqlalchemy import exists
+
+    return select(User).where(
+        User.organization_id == record.organization_id,
+        User.department_id == record.department_id,
+        User.status == "active",
+        exists(
+            select(RoleAssignment.user_id).where(
+                RoleAssignment.organization_id == User.organization_id,
+                RoleAssignment.user_id == User.id,
+                RoleAssignment.revoked_at.is_(None),
+                RoleAssignment.granted_at <= datetime.now(UTC),
+            )
+        ),
+    )
+
+
+def require_assignee(
+    session: Session, record: Request, user_id: UUID, *, lock: bool = True
+) -> User:
+    from app.domain.errors import DomainError
+
+    query = assignee_query(record).where(User.id == user_id)
+    user = session.scalar(query.with_for_update(read=True) if lock else query)
+    if user is None or not active_roles(
+        session, Principal(record.organization_id, user_id), lock=lock
+    ):
+        raise DomainError(
+            422, "Unprocessable Content", "Assignee is unavailable in this department."
+        )
+    return user
+
+
+def department_choices(actor: Principal) -> Select[tuple[Department]]:
+    """The existing creation boundary: active principals may select a tenant department."""
+    return select(Department).where(Department.organization_id == actor.organization_id)

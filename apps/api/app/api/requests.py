@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import authenticated_principal, database_session
 from app.domain.identity import Principal
+from app.schemas.capabilities import CreationOptions, RequestCapabilities
 from app.schemas.core import (
     LifecyclePage,
     Problem,
@@ -15,7 +16,7 @@ from app.schemas.core import (
     RevisionPage,
 )
 from app.schemas.workflow import Transition, TransitionRead
-from app.services import requests, transition_service
+from app.services import capabilities, requests, transition_service
 from app.services.visibility import WorkScope
 
 
@@ -53,6 +54,21 @@ def create_request(
     idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
 ) -> RequestDetail:
     return requests.create_request(session, principal, payload, idempotency_key)
+
+
+@router.get(
+    "/options",
+    response_model=CreationOptions,
+    operation_id="get_request_options",
+    responses={409: problem_response("Organization display context requires validation")},
+)
+def get_request_options(
+    principal: Identity,
+    session: Database,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> CreationOptions:
+    return capabilities.creation_options(session, principal, limit, offset)
 
 
 @router.get(
@@ -129,3 +145,25 @@ def list_request_lifecycle(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> LifecyclePage:
     return requests.list_lifecycle(session, principal, request_id, limit, offset)
+
+
+@router.get(
+    "/{request_id}/capabilities",
+    response_model=RequestCapabilities,
+    operation_id="get_request_capabilities",
+    description="Read-only current Principal capabilities. "
+    "Advisory snapshot bound to expected_version; "
+    "typed mutations recheck all authority under lock. Form input is still required.",
+    responses={
+        404: problem_response("Request missing or not visible"),
+        409: problem_response("Organization display context requires validation"),
+    },
+)
+def get_request_capabilities(
+    request_id: UUID,
+    principal: Identity,
+    session: Database,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> RequestCapabilities:
+    return capabilities.get_capabilities(session, principal, request_id, limit, offset)

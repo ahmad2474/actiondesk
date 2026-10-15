@@ -1,7 +1,8 @@
 """Explicit approval reversal and service work cycles; no external effects."""
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import ValidationError
@@ -65,12 +66,16 @@ def approval_source(session: Session, record: Request) -> tuple[Approval, Approv
     return final, decision
 
 
-def final_candidate(session: Session, actor: Principal, record: Request, final: Approval) -> bool:
+def final_candidate(
+    session: Session, actor: Principal, record: Request, final: Approval, *, lock: bool = True
+) -> bool:
     candidate = session.get(ApprovalCandidate, (record.organization_id, final.id, actor.user_id))
-    return candidate is not None and candidate_eligible(session, record, candidate, lock=True)
+    return candidate is not None and candidate_eligible(session, record, candidate, lock=lock)
 
 
-def reversal_boundary(session: Session, record: Request, now: datetime) -> str:
+def reversal_boundary(
+    session: Session, record: Request, now: datetime, *, lock: bool = True
+) -> str:
     if (
         record.type not in (T.EXPENSE, T.LEAVE)
         or record.completed_at is not None
@@ -79,11 +84,8 @@ def reversal_boundary(session: Session, record: Request, now: datetime) -> str:
         or record.processing_reference is not None
     ):
         raise conflict("Completed or processed requests cannot be reversed.")
-    organization = session.scalar(
-        select(Organization)
-        .where(Organization.id == record.organization_id)
-        .with_for_update(read=True)
-    )
+    query = select(Organization).where(Organization.id == record.organization_id)
+    organization = session.scalar(query.with_for_update(read=True) if lock else query)
     if organization is None:
         raise conflict("Organization configuration is unavailable.")
     if record.type == T.LEAVE:
@@ -104,15 +106,23 @@ def reversal_boundary(session: Session, record: Request, now: datetime) -> str:
     return organization.timezone
 
 
-def request_reversal(
-    session: Session, actor: Principal, record: Request, action: RequestReversal, now: datetime
-) -> None:
+def check_request_reversal(
+    session: Session, actor: Principal, record: Request, now: datetime, *, lock: bool = True
+) -> tuple[ApprovalDecision, str]:
     require_edge(record.type, record.status, Action.REQUEST_REVERSAL, S.REVERSAL_REVIEW)
     final, decision = approval_source(session, record)
     forbid_unless(
-        actor.user_id == record.created_by or final_candidate(session, actor, record, final)
+        actor.user_id == record.created_by
+        or final_candidate(session, actor, record, final, lock=lock)
     )
-    timezone = reversal_boundary(session, record, now)
+    timezone = reversal_boundary(session, record, now, lock=lock)
+    return decision, timezone
+
+
+def request_reversal(
+    session: Session, actor: Principal, record: Request, action: RequestReversal, now: datetime
+) -> None:
+    decision, timezone = check_request_reversal(session, actor, record, now)
     capture_submission(session, actor, record, now, approval=True)
     request = ReversalRequest(
         id=uuid4(),
@@ -131,20 +141,23 @@ def request_reversal(
     advance(session, actor, record, Action.REQUEST_REVERSAL, S.REVERSAL_REVIEW, action.reason, now)
 
 
-def decide_reversal(
+def check_decide_reversal(
     session: Session,
     actor: Principal,
     record: Request,
-    action: ApproveReversal | RejectReversal,
+    action: Action,
+    reversal_request_id: UUID,
     now: datetime,
-) -> None:
-    target = S.REVERSED if isinstance(action, ApproveReversal) else S.APPROVED
-    require_edge(record.type, record.status, Action(action.action), target)
+    *,
+    lock: bool = True,
+) -> tuple[ReversalRequest, str]:
+    target = S.REVERSED if action == Action.APPROVE_REVERSAL else S.APPROVED
+    require_edge(record.type, record.status, action, target)
     request = session.scalar(
         select(ReversalRequest).where(
             ReversalRequest.organization_id == record.organization_id,
             ReversalRequest.request_id == record.id,
-            ReversalRequest.id == action.reversal_request_id,
+            ReversalRequest.id == reversal_request_id,
         )
     )
     if (
@@ -160,7 +173,7 @@ def decide_reversal(
     forbid_unless(
         actor.user_id != record.created_by
         and actor.user_id != request.actor_id
-        and final_candidate(session, actor, record, final)
+        and final_candidate(session, actor, record, final, lock=lock)
     )
     if (
         session.scalar(
@@ -172,12 +185,26 @@ def decide_reversal(
         is not None
     ):
         raise conflict("Reversal was already decided.")
-    if isinstance(action, ApproveReversal):
-        timezone = reversal_boundary(session, record, now)
+    if action == Action.APPROVE_REVERSAL:
+        timezone = reversal_boundary(session, record, now, lock=lock)
     else:
         organization = session.get(Organization, record.organization_id)
         assert organization is not None
         timezone = organization.timezone
+    return request, timezone
+
+
+def decide_reversal(
+    session: Session,
+    actor: Principal,
+    record: Request,
+    action: ApproveReversal | RejectReversal,
+    now: datetime,
+) -> None:
+    request, timezone = check_decide_reversal(
+        session, actor, record, Action(action.action), action.reversal_request_id, now
+    )
+    target = S.REVERSED if isinstance(action, ApproveReversal) else S.APPROVED
     advance(session, actor, record, Action(action.action), target, action.reason, now)
     session.add(
         ReversalDecision(
@@ -194,8 +221,8 @@ def decide_reversal(
     session.flush()
 
 
-def create_correction(
-    session: Session, actor: Principal, record: Request, action: CreateCorrection, now: datetime
+def check_create_correction(
+    session: Session, actor: Principal, record: Request, reversal_request_id: UUID
 ) -> None:
     require_edge(record.type, record.status, Action.CREATE_CORRECTION, S.REVERSED)
     forbid_unless(actor.user_id == record.created_by)
@@ -204,13 +231,13 @@ def create_correction(
         select(ReversalRequest).where(
             ReversalRequest.organization_id == record.organization_id,
             ReversalRequest.request_id == record.id,
-            ReversalRequest.id == action.reversal_request_id,
+            ReversalRequest.id == reversal_request_id,
         )
     )
     decision = session.scalar(
         select(ReversalDecision).where(
             ReversalDecision.organization_id == record.organization_id,
-            ReversalDecision.reversal_request_id == action.reversal_request_id,
+            ReversalDecision.reversal_request_id == reversal_request_id,
             ReversalDecision.outcome == "accepted",
         )
     )
@@ -224,6 +251,12 @@ def create_correction(
         raise conflict("An accepted correction reversal is required.")
     if session.get(CorrectionLink, (record.organization_id, record.id)) is not None:
         raise conflict("A replacement already exists.")
+
+
+def create_correction(
+    session: Session, actor: Principal, record: Request, action: CreateCorrection, now: datetime
+) -> None:
+    check_create_correction(session, actor, record, action.reversal_request_id)
     child = Request(
         id=uuid4(),
         organization_id=record.organization_id,
@@ -262,26 +295,23 @@ def create_correction(
             organization_id=record.organization_id,
             source_id=record.id,
             child_id=child.id,
-            reversal_request_id=reversal.id,
+            reversal_request_id=action.reversal_request_id,
             event_sequence=record.version,
         )
     )
     session.flush()
 
 
-def valid_assignee(session: Session, record: Request) -> None:
-    assignee = session.scalar(
-        select(User)
-        .where(
-            User.organization_id == record.organization_id,
-            User.id == record.assigned_to,
-            User.department_id == record.department_id,
-            User.status == "active",
-        )
-        .with_for_update(read=True)
+def valid_assignee(session: Session, record: Request, *, lock: bool = True) -> None:
+    query = select(User).where(
+        User.organization_id == record.organization_id,
+        User.id == record.assigned_to,
+        User.department_id == record.department_id,
+        User.status == "active",
     )
+    assignee = session.scalar(query.with_for_update(read=True) if lock else query)
     if assignee is None or not active_roles(
-        session, Principal(record.organization_id, assignee.id), lock=True
+        session, Principal(record.organization_id, assignee.id), lock=lock
     ):
         raise conflict("The retained assignee is unavailable; reassignment is not permitted.")
 
@@ -339,9 +369,17 @@ def service_resolve(
     session.flush()
 
 
-def capture_resolution(
-    session: Session, actor: Principal, record: Request, now: datetime
-) -> ServiceResolution:
+@dataclass(frozen=True)
+class ResolutionEvidence:
+    id: UUID | None
+    cycle_sequence: int
+    event_sequence: int
+    actor_id: UUID
+    at: datetime
+    body: str
+
+
+def resolution_evidence(session: Session, record: Request) -> ResolutionEvidence:
     if (
         record.workflow_version != 1
         or record.status != S.RESOLVED
@@ -358,7 +396,14 @@ def capture_resolution(
         )
         if existing is None or existing.cycle_sequence != record.service_cycle_sequence:
             raise conflict("Current resolution evidence is inconsistent.")
-        return existing
+        return ResolutionEvidence(
+            existing.id,
+            existing.cycle_sequence,
+            existing.event_sequence,
+            existing.actor_id,
+            existing.at,
+            existing.body,
+        )
     resolved = session.scalar(
         select(RequestEvent).where(
             RequestEvent.organization_id == record.organization_id,
@@ -379,6 +424,7 @@ def capture_resolution(
     if (
         resolved is None
         or started is None
+        or resolved.actor_id is None
         or resolved.action != "resolve"
         or resolved.from_state != S.IN_PROGRESS
         or resolved.to_state != S.RESOLVED
@@ -389,47 +435,65 @@ def capture_resolution(
         or not record.resolution.strip()
     ):
         raise conflict("Existing service resolution lacks trusted evidence; capture is blocked.")
+    return ResolutionEvidence(
+        None, started.sequence, resolved.sequence, resolved.actor_id, resolved.at, record.resolution
+    )
+
+
+def capture_resolution(
+    session: Session, actor: Principal, record: Request, now: datetime
+) -> ServiceResolution:
+    evidence = resolution_evidence(session, record)
+    if evidence.id is not None:
+        existing = session.scalar(
+            select(ServiceResolution).where(
+                ServiceResolution.organization_id == record.organization_id,
+                ServiceResolution.id == evidence.id,
+            )
+        )
+        assert existing is not None
+        return existing
     resolution = ServiceResolution(
         id=uuid4(),
         organization_id=record.organization_id,
         request_id=record.id,
-        cycle_sequence=started.sequence,
-        event_sequence=resolved.sequence,
-        actor_id=resolved.actor_id,
-        at=resolved.at,
-        body=record.resolution,
+        cycle_sequence=evidence.cycle_sequence,
+        event_sequence=evidence.event_sequence,
+        actor_id=evidence.actor_id,
+        at=evidence.at,
+        body=evidence.body,
         captured_by=actor.user_id,
         captured_at=now,
     )
     session.add(resolution)
     session.flush()
-    # Pointers will move atomically with the reopen event; original legacy columns stay unchanged.
     return resolution
 
 
-def reopen(
+def check_reopen(
     session: Session,
     actor: Principal,
     record: Request,
-    action: Reopen,
     roles: frozenset[Role],
     now: datetime,
-) -> None:
+    *,
+    resolution_id: UUID | None = None,
+    lock: bool = True,
+) -> tuple[ResolutionEvidence, ServiceReopenPolicy, datetime]:
     require_edge(record.type, record.status, Action.REOPEN, S.REOPENED)
     forbid_unless(
         actor.user_id == record.created_by
         or Role.ADMIN in roles
-        or department_manager(session, actor, record.department_id, lock=True)
+        or department_manager(session, actor, record.department_id, lock=lock)
     )
-    valid_assignee(session, record)
-    resolution = capture_resolution(session, actor, record, now)
-    if action.resolution_id is not None and action.resolution_id != resolution.id:
+    valid_assignee(session, record, lock=lock)
+    resolution = resolution_evidence(session, record)
+    if resolution_id is not None and resolution_id != resolution.id:
         raise conflict("Reopening must reference the latest actual resolution.")
-    selected = session.scalar(
-        select(ActiveServiceReopenPolicy)
-        .where(ActiveServiceReopenPolicy.organization_id == record.organization_id)
-        .with_for_update(read=True)
+    query = select(ActiveServiceReopenPolicy).where(
+        ActiveServiceReopenPolicy.organization_id == record.organization_id
     )
+    selected = session.scalar(query.with_for_update(read=True) if lock else query)
     if selected is None:
         raise conflict("No service reopening policy is configured.")
     policy = session.scalar(
@@ -450,6 +514,21 @@ def reopen(
     expires = resolved_at + timedelta(seconds=definition.window_seconds)
     if not resolved_at <= now <= expires:
         raise conflict("The service reopening window has expired.")
+    return resolution, policy, expires
+
+
+def reopen(
+    session: Session,
+    actor: Principal,
+    record: Request,
+    action: Reopen,
+    roles: frozenset[Role],
+    now: datetime,
+) -> None:
+    _, policy, expires = check_reopen(
+        session, actor, record, roles, now, resolution_id=action.resolution_id
+    )
+    resolution = capture_resolution(session, actor, record, now)
     record.latest_resolution_id = resolution.id
     record.service_cycle_sequence = record.version + 1
     advance(session, actor, record, Action.REOPEN, S.REOPENED, action.reason, now)

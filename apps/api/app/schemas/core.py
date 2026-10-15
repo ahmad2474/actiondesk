@@ -216,6 +216,7 @@ class LifecyclePage(ReadSchema):
 
 
 class RequestDetail(RequestRead):
+    due_at: datetime | None = None
     active_reversal: ReversalRequestRead | None = None
     reversal_decision: ReversalDecisionRead | None = None
     current_resolution: ServiceResolutionRead | None = None

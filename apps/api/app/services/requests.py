@@ -48,6 +48,7 @@ from app.schemas.core import (
     StepRead,
     SubmissionRead,
 )
+from app.services.eligibility import department_choices
 from app.services.visibility import (
     WorkScope,
     current_approval,
@@ -164,6 +165,7 @@ def request_detail(
         )
 
     return RequestDetail(
+        due_at=record.due_at,
         active_reversal=ReversalRequestRead.model_validate(reversal) if reversal else None,
         reversal_decision=ReversalDecisionRead.model_validate(reversal_decision)
         if reversal_decision
@@ -199,10 +201,7 @@ def create_request(
     with session.begin():
         validate_principal(session, principal)
         department = session.scalar(
-            select(Department.id).where(
-                Department.organization_id == principal.organization_id,
-                Department.id == payload.department_id,
-            )
+            department_choices(principal).where(Department.id == payload.department_id)
         )
         if department is None:
             raise DomainError(422, "Unprocessable Content", "Department is unavailable.")

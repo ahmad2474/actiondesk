@@ -22,7 +22,6 @@ from app.db.models import (
     RequestFields,
     RequestRevision,
     RequestSubmission,
-    User,
 )
 from app.domain.errors import DomainError
 from app.domain.identity import Principal
@@ -56,7 +55,7 @@ from app.schemas.workflow import (
     TransitionRead,
     Triage,
 )
-from app.services.eligibility import active_roles, candidate_eligible, department_manager
+from app.services.eligibility import active_roles, candidate_eligible
 from app.services.policies import persist_plan, resolve_plan
 from app.services.requests import request_detail, validate_principal
 from app.services.visibility import current_approval, scoped_request
@@ -260,30 +259,9 @@ def validated_steps(session: Session, record: Request) -> list[Approval]:
     return steps
 
 
-def submit(
-    session: Session, actor: Principal, record: Request, action: Submit | Resubmit, now: datetime
-) -> None:
-    forbid_unless(record.created_by == actor.user_id)
-    require_edge(record.type, record.status, Action(action.action), S.SUBMITTED)
-    revision = None
-    if isinstance(action, Resubmit):
-        revision = latest_proposal(session, record, action.revision_id)
-        data = parse_fields(record, revision.fields)
-    else:
-        data = action.data
-    if data.type != record.type or record.workflow_version != 1:
-        raise conflict("Submission does not match an actionable request type.")
-    policy, plan = resolve_plan(session, record, data)
-    if isinstance(action, Submit) and (
-        session.scalar(
-            select(Approval.id).where(
-                Approval.organization_id == record.organization_id,
-                Approval.request_id == record.id,
-            )
-        )
-        is not None
-    ):
-        raise conflict("Draft already contains an approval plan requiring validation.")
+def submission_overlap(
+    session: Session, record: Request, data: ExpenseSubmission | LeaveSubmission
+) -> bool:
     leave_overlap = False
     if isinstance(data, LeaveSubmission):
         # Flag overlapping submitted/approved leave for the same employee, never deny it.
@@ -315,6 +293,34 @@ def submit(
                 ) from None
             if other_data.start_date <= data.end_date and data.start_date <= other_data.end_date:
                 leave_overlap = True
+    return leave_overlap
+
+
+def submit(
+    session: Session, actor: Principal, record: Request, action: Submit | Resubmit, now: datetime
+) -> None:
+    forbid_unless(record.created_by == actor.user_id)
+    require_edge(record.type, record.status, Action(action.action), S.SUBMITTED)
+    revision = None
+    if isinstance(action, Resubmit):
+        revision = latest_proposal(session, record, action.revision_id)
+        data = parse_fields(record, revision.fields)
+    else:
+        data = action.data
+    if data.type != record.type or record.workflow_version != 1:
+        raise conflict("Submission does not match an actionable request type.")
+    policy, plan = resolve_plan(session, record, data)
+    if isinstance(action, Submit) and (
+        session.scalar(
+            select(Approval.id).where(
+                Approval.organization_id == record.organization_id,
+                Approval.request_id == record.id,
+            )
+        )
+        is not None
+    ):
+        raise conflict("Draft already contains an approval plan requiring validation.")
+    leave_overlap = submission_overlap(session, record, data)
     fields = session.get(RequestFields, (record.organization_id, record.id))
     if fields is None:
         fields = RequestFields(organization_id=record.organization_id, request_id=record.id)
@@ -392,15 +398,17 @@ def actionable_step(
     session: Session,
     actor: Principal,
     record: Request,
-    action: Approve | Reject | RequestChanges,
+    action: Approve | Reject | RequestChanges | None,
     now: datetime,
+    *,
+    lock: bool = True,
 ) -> tuple[list[Approval], Approval]:
     forbid_unless(actor.user_id != record.created_by)
     steps = validated_steps(session, record)
     step = next((item for item in steps if item.status == "pending"), None)
     if (
         step is None
-        or step.id != action.approval_id
+        or (action is not None and step.id != action.approval_id)
         or any(item.status != "approved" for item in steps if item.step < step.step)
     ):
         raise conflict("Only the current pending approval step can be decided.")
@@ -419,7 +427,7 @@ def actionable_step(
     eligible = [
         candidate.user_id
         for candidate in candidates
-        if candidate_eligible(session, record, candidate, lock=True)
+        if candidate_eligible(session, record, candidate, lock=lock)
     ]
     if not eligible:
         raise conflict("All snapshotted candidates are ineligible; approval is blocked.")
@@ -579,14 +587,10 @@ def capture_submission(
     session.flush()
 
 
-def revise(
-    session: Session, actor: Principal, record: Request, action: Revise, now: datetime
-) -> None:
+def revision_base(session: Session, actor: Principal, record: Request) -> RequestRevision:
     forbid_unless(record.created_by == actor.user_id)
     require_edge(record.type, record.status, Action.REVISE, S.NEEDS_INFO)
-    change = correction(session, record)
-    if action.data.type != record.type:
-        raise conflict("Revision does not match the request type.")
+    correction(session, record)
     submission = session.get(
         RequestSubmission, (record.organization_id, record.id, current_sequence(record))
     )
@@ -602,6 +606,16 @@ def revise(
     )
     if previous is None:
         raise conflict("Previous revision is missing.")
+    return previous
+
+
+def revise(
+    session: Session, actor: Principal, record: Request, action: Revise, now: datetime
+) -> None:
+    previous = revision_base(session, actor, record)
+    change = correction(session, record)
+    if action.data.type != record.type:
+        raise conflict("Revision does not match the request type.")
     fields = action.data.model_dump(mode="json")
     if previous.fields == fields and previous.clarification == action.clarification:
         raise conflict("Revision makes no change.")
@@ -632,6 +646,7 @@ def apply(
     roles: frozenset[Role],
     now: datetime,
 ) -> UUID | None:
+    """Internal dispatcher: transition has already performed the locked shared preflight."""
     from app.services import lifecycle
 
     if isinstance(action, RequestReversal):
@@ -667,67 +682,21 @@ def apply(
     elif isinstance(action, (Approve, Reject)):
         return decide(session, actor, record, action, now)
     elif isinstance(action, Process):
-        forbid_unless(Role.FINANCE in roles and actor.user_id != record.created_by)
-        require_edge(record.type, record.status, Action.PROCESS, S.COMPLETED)
-        if (
-            not all(step.status == "approved" for step in validated_steps(session, record))
-            or record.approved_at is None
-        ):
-            raise conflict("Complete approval evidence is required before processing.")
         record.processed_by, record.processing_role = actor.user_id, Role.FINANCE
         record.completed_at, record.processing_reference = now, action.reference
         advance(session, actor, record, Action.PROCESS, S.COMPLETED, action.reason, now)
     elif isinstance(action, Cancel):
-        if (
-            record.approved_at is not None
-            or record.completed_at is not None
-            or record.processed_by is not None
-        ):
-            raise conflict("Final approval or completion prevents cancellation.")
-        if record.type == T.SERVICE:
-            if record.status == S.ASSIGNED:
-                forbid_unless(
-                    Role.ADMIN in roles
-                    or department_manager(session, actor, record.department_id, lock=True)
-                )
-            else:
-                forbid_unless(record.created_by == actor.user_id)
-            advance(session, actor, record, Action.CANCEL, S.CANCELLED, action.reason, now)
-        else:
-            forbid_unless(record.created_by == actor.user_id)
-            if record.status != S.DRAFT:
-                validated_steps(session, record)
-            elif record.workflow_version != 1:
-                raise conflict("Legacy request requires explicit validation.")
-            advance(session, actor, record, Action.CANCEL, S.WITHDRAWN, action.reason, now)
+        target = S.CANCELLED if record.type == T.SERVICE else S.WITHDRAWN
+        advance(session, actor, record, Action.CANCEL, target, action.reason, now)
+        if record.type != T.SERVICE:
             close_pending(session, record)
     else:
         if record.type != T.SERVICE:
             raise conflict("Service action does not apply to this workflow.")
         if isinstance(action, (Triage, Assign)):
-            forbid_unless(
-                Role.ADMIN in roles
-                or department_manager(session, actor, record.department_id, lock=True)
-            )
             if isinstance(action, Triage):
                 target = S.TRIAGED
             else:
-                assignee = session.scalar(
-                    select(User)
-                    .where(
-                        User.organization_id == record.organization_id,
-                        User.id == action.assignee_id,
-                        User.department_id == record.department_id,
-                        User.status == "active",
-                    )
-                    .with_for_update(read=True)
-                )
-                if assignee is None or not active_roles(
-                    session, Principal(actor.organization_id, action.assignee_id), lock=True
-                ):
-                    raise DomainError(
-                        422, "Unprocessable Content", "Assignee is unavailable in this department."
-                    )
                 target = S.ASSIGNED
                 record.assigned_to = action.assignee_id
         elif isinstance(action, Start):
@@ -737,7 +706,6 @@ def apply(
             lifecycle.service_resolve(session, actor, record, action.resolution, action.reason, now)
             return None
         elif isinstance(action, Close):
-            forbid_unless(record.created_by == actor.user_id or Role.ADMIN in roles)
             target = S.CLOSED
             record.completed_at = now
         else:
@@ -790,6 +758,11 @@ def transition(
                 operation_time = session.scalar(select(func.clock_timestamp()))
                 assert isinstance(operation_time, datetime)
                 now = operation_time
+            from app.services.action_checks import check_action
+
+            check_action(
+                session, actor, record, Action(action.action), now, payload=action, lock=True
+            )
             decision_id = apply(session, actor, record, action, roles, now)
             link = (
                 session.get(CorrectionLink, (record.organization_id, record.id))

@@ -19,7 +19,7 @@ from app.db.models import (
 )
 from app.domain.errors import DomainError
 from app.domain.identity import Principal
-from app.domain.types import Role
+from app.domain.types import RequestType, Role
 from app.schemas.workflow import ApprovalPolicyDefinition, ExpenseSubmission, Submission
 from app.services.eligibility import active_roles, department_manager
 
@@ -32,16 +32,13 @@ class PlannedStep:
 
 
 def resolve_plan(
-    session: Session, record: Request, data: Submission
+    session: Session, record: Request, data: Submission | None, *, lock: bool = True
 ) -> tuple[ApprovalPolicy, list[PlannedStep]]:
-    selected = session.scalar(
-        select(ActiveApprovalPolicy)
-        .where(
-            ActiveApprovalPolicy.organization_id == record.organization_id,
-            ActiveApprovalPolicy.request_type == record.type,
-        )
-        .with_for_update(read=True)
+    selected_query = select(ActiveApprovalPolicy).where(
+        ActiveApprovalPolicy.organization_id == record.organization_id,
+        ActiveApprovalPolicy.request_type == record.type,
     )
+    selected = session.scalar(selected_query.with_for_update(read=True) if lock else selected_query)
     if selected is None:
         raise DomainError(409, "Conflict", "No active approval policy is configured.")
     policy = session.scalar(
@@ -58,48 +55,49 @@ def resolve_plan(
         raise DomainError(
             409, "Conflict", "The selected policy requires explicit validation."
         ) from None
-    explicit = session.scalar(
-        select(EmployeeManager)
-        .where(
-            EmployeeManager.organization_id == record.organization_id,
-            EmployeeManager.employee_id == record.created_by,
-        )
-        .with_for_update(read=True)
+    explicit_query = select(EmployeeManager).where(
+        EmployeeManager.organization_id == record.organization_id,
+        EmployeeManager.employee_id == record.created_by,
     )
+    explicit = session.scalar(explicit_query.with_for_update(read=True) if lock else explicit_query)
     managers: tuple[UUID, ...] = ()
     source = "employee_manager"
     if explicit is not None and Role.MANAGER in active_roles(
-        session, Principal(record.organization_id, explicit.manager_id), lock=True
+        session, Principal(record.organization_id, explicit.manager_id), lock=lock
     ):
         managers = (explicit.manager_id,)
     elif definition.allow_department_fallback:
         source = "department_manager"
-        ids = session.scalars(
+        manager_query = (
             select(DepartmentManager.manager_id)
             .where(
                 DepartmentManager.organization_id == record.organization_id,
                 DepartmentManager.department_id == record.department_id,
             )
             .order_by(DepartmentManager.manager_id)
-            .with_for_update(read=True)
         )
+        ids = session.scalars(manager_query.with_for_update(read=True) if lock else manager_query)
         managers = tuple(
             user
             for user in ids
             if user != record.created_by
             and department_manager(
-                session, Principal(record.organization_id, user), record.department_id, lock=True
+                session, Principal(record.organization_id, user), record.department_id, lock=lock
             )
         )
     if not managers:
         raise DomainError(409, "Conflict", "No valid manager approval candidate is available.")
     plan = [PlannedStep(Role.MANAGER, source, managers)]
-    if isinstance(data, ExpenseSubmission):
-        if definition.currency != data.currency or definition.finance_threshold is None:
+    if record.type == RequestType.EXPENSE:
+        if (
+            definition.currency is None
+            or definition.finance_threshold is None
+            or (isinstance(data, ExpenseSubmission) and definition.currency != data.currency)
+        ):
             raise DomainError(
                 409, "Conflict", "Expense currency and finance threshold must be configured."
             )
-        if data.amount > definition.finance_threshold:
+        if isinstance(data, ExpenseSubmission) and data.amount > definition.finance_threshold:
             users = session.scalars(
                 select(RoleAssignment.user_id)
                 .where(
@@ -113,7 +111,7 @@ def resolve_plan(
                 for user in users
                 if user != record.created_by
                 and Role.FINANCE
-                in active_roles(session, Principal(record.organization_id, user), lock=True)
+                in active_roles(session, Principal(record.organization_id, user), lock=lock)
             )
             if not candidates:
                 raise DomainError(

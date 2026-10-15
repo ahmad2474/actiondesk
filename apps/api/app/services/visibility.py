@@ -262,3 +262,44 @@ def scope_predicate(actor: Principal, scope: WorkScope) -> ColumnElement[bool]:
             return triage_predicate(actor)
         case WorkScope.PROCESSING:
             return processing_predicate(actor)
+
+
+def reversal_predicate(actor: Principal) -> ColumnElement[bool]:
+    """Current independent reversal nominations, correlated to the visible request."""
+    decided = exists(
+        select(ReversalDecision.id).where(
+            ReversalDecision.organization_id == ReversalRequest.organization_id,
+            ReversalDecision.reversal_request_id == ReversalRequest.id,
+        )
+    )
+    return and_(
+        Request.status == S.REVERSAL_REVIEW,
+        exists(
+            select(ReversalRequest.id)
+            .join(
+                ApprovalDecision,
+                (ApprovalDecision.organization_id == ReversalRequest.organization_id)
+                & (ApprovalDecision.id == ReversalRequest.final_decision_id),
+            )
+            .join(
+                Approval,
+                (Approval.organization_id == ApprovalDecision.organization_id)
+                & (Approval.id == ApprovalDecision.approval_id),
+            )
+            .join(
+                ApprovalCandidate,
+                (ApprovalCandidate.organization_id == Approval.organization_id)
+                & (ApprovalCandidate.approval_id == Approval.id),
+            )
+            .where(
+                ReversalRequest.organization_id == Request.organization_id,
+                ReversalRequest.request_id == Request.id,
+                ReversalRequest.id == Request.active_reversal_id,
+                current_approval(),
+                ReversalRequest.actor_id != actor.user_id,
+                candidate_predicate(actor),
+                ~decided,
+            )
+            .correlate(Request)
+        ),
+    )

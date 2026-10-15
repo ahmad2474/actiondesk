@@ -4,7 +4,7 @@
 
 - Authoritative specification: `docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf`, especially Sections 16.1-16.7. Use `docs/ActionDesk_PRD_Technical_Architecture_v1.pdf` only as non-conflicting background.
 - Follow explicit user instructions. Do not infer policy from incomplete PDF extraction; stop and report extraction failure.
-- Phase 0 and Phase 1 milestones 1–5 are complete, live-verified, committed/pushed and CI green as confirmed by the project owner. Milestone 6A is explicitly authorized: custom design system/shell, real existing authentication, real read-only owned requests/detail/evidence, isolated synthetic workflow previews, accessibility and visual checks. Authentication and Redis/Celery behavior stay unchanged. No Milestone 6B workflow mutations, AI, notifications, deployment changes, commits or pushes are authorized.
+- Phase 0 and Phase 1 milestones 1–6A, including security maintenance, are owner-confirmed complete, committed/pushed and CI green. Milestone 6B Phase 1 is explicitly authorized: backend-authoritative read-only capabilities, scoped display/choice data, enriched work queues and generated contracts. Reuse mutation authorization; keep Principal/auth/CSRF/session and existing workflow policies unchanged. No frontend mutation buttons, AI, notifications, attachments, analytics, deployment changes, commits or pushes are authorized in this step.
 - `docs/PHASE_0_PLAN.md` records proposed implementation choices and open decisions. Proposals are not approved requirements. When approval arrives, update the recorded status and decisions.
 
 ## Architecture and scope
@@ -101,7 +101,7 @@
 
 - Before changing code, identify the authorized phase and relevant PRD sections. Record unresolved policy questions rather than inventing rules.
 - Keep changes focused, reviewable, and accompanied by relevant documentation and validation. Do not broaden scope or install speculative future dependencies.
-- Stop at Phase 1 milestone 6A. Further milestones require explicit approval. Report actual validation evidence and deviations before declaring completion.
+- Stop at Milestone 6B Phase 1 read-model foundation. Further workflow UI wiring requires a subsequent review checkpoint. Report actual validation evidence and deviations before declaring completion.
 
 ## Approved milestone 3 policy
 
@@ -148,3 +148,11 @@
 - Workflow/create/revision/queue/action states are clearly isolated fictional previews, never blended into live API responses. No active-action capability or directory API is added; those require milestone 6B approval.
 - Approved dependencies: selected Radix dialog/alert-dialog/dropdown/tabs primitives, Lucide, and axe Playwright. No Themes, shadcn, Tailwind, React Query, Zustand, form library or Storybook. Record locks/justification in ADR 0006.
 - Verify desktop/laptop/tablet/mobile through 320px, long evidence, role unions, keyboard/focus/dialogs, contrast, reduced motion, session expiry, HTTP/network errors and screenshot consistency. Browser authentication checks use a disposable test database/account, never development credentials. Report any manual screen-reader or platform baseline limits honestly.
+
+
+## Approved milestone 6B Phase 1 boundary
+
+- Read-only request capabilities and queues derive authority from the same shared preflight as locked mutations, never frontend roles/status. Bind actions to request version/current evidence IDs; mutations always revalidate.
+- Display names/choices stay tenant- and participant-scoped. No global user directory, hidden candidate/policy disclosure or admin-only sensitive-content access.
+- Read models do not write or lazily capture business evidence. Preserve immutable approvals, revision/correction, reversal, service-cycle, idempotency and database invariants.
+- No UI redesign, mutation-button wiring, dependencies, migrations, AI, notifications, uploads, analytics, deployment, commit or push. See docs/adr/0007-workflow-capability-reads.md and docs/PHASE_1_MILESTONE_6B_READ_MODELS.md.

@@ -120,6 +120,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requests/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Request Options */
+        get: operations["get_request_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requests/{request_id}": {
         parameters: {
             query?: never;
@@ -129,6 +146,26 @@ export interface paths {
         };
         /** Get Request */
         get: operations["get_request"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{request_id}/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Request Capabilities
+         * @description Read-only current Principal capabilities. Advisory snapshot bound to expected_version; typed mutations recheck all authority under lock. Form input is still required.
+         */
+        get: operations["get_request_capabilities"];
         put?: never;
         post?: never;
         delete?: never;
@@ -208,10 +245,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/work-queues/{queue}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Work Queue */
+        get: operations["get_work_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Action
+         * @enum {string}
+         */
+        Action: "submit" | "route" | "triage" | "assign" | "start" | "resolve" | "close" | "approve" | "reject" | "process" | "cancel" | "request_changes" | "revise" | "resubmit" | "request_reversal" | "approve_reversal" | "reject_reversal" | "create_correction" | "reopen";
+        /** ActionBlock */
+        ActionBlock: {
+            action: components["schemas"]["Action"];
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "not_ready" | "reversal_review";
+            /** Message */
+            message: string;
+        };
+        /** ActionCapability */
+        ActionCapability: {
+            action: components["schemas"]["Action"];
+            /** Approval Id */
+            approval_id?: string | null;
+            /** Resolution Id */
+            resolution_id?: string | null;
+            /** Reversal Request Id */
+            reversal_request_id?: string | null;
+            /** Revision Id */
+            revision_id?: string | null;
+        };
         /** ApprovalPage */
         ApprovalPage: {
             /** Items */
@@ -331,6 +413,20 @@ export interface components {
             /** Submission Sequence */
             submission_sequence: number;
         };
+        /** ChoicePage */
+        ChoicePage: {
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
+            /** Items */
+            items?: components["schemas"]["DisplayName"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
         /** Close */
         Close: {
             /**
@@ -359,6 +455,14 @@ export interface components {
              * Format: uuid
              */
             reversal_request_id: string;
+        };
+        /** CreationOptions */
+        CreationOptions: {
+            departments: components["schemas"]["ChoicePage"];
+            /** Organization Timezone */
+            organization_timezone: string;
+            /** Request Types */
+            request_types: components["schemas"]["RequestType"][];
         };
         /** DecisionRead */
         DecisionRead: {
@@ -407,6 +511,16 @@ export interface components {
              * @enum {string}
              */
             redis: "ok" | "unavailable";
+        };
+        /** DisplayName */
+        DisplayName: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** ExpenseSubmission */
         ExpenseSubmission: {
@@ -494,6 +608,11 @@ export interface components {
             /** Reference */
             reference: string;
         };
+        /**
+         * QueueKind
+         * @enum {string}
+         */
+        QueueKind: "approvals" | "reversals" | "service_work" | "finance_processing";
         /** Readiness */
         Readiness: {
             checks: components["schemas"]["DependencyChecks"];
@@ -550,6 +669,31 @@ export interface components {
             reason: string;
             /** Resolution Id */
             resolution_id?: string | null;
+        };
+        /** RequestCapabilities */
+        RequestCapabilities: {
+            assignee_choices?: components["schemas"]["ChoicePage"] | null;
+            /** Available Actions */
+            available_actions: components["schemas"]["ActionCapability"][];
+            /** Blocking */
+            blocking?: components["schemas"]["ActionBlock"][];
+            department: components["schemas"]["DisplayName"];
+            /**
+             * Evaluated At
+             * Format: date-time
+             */
+            evaluated_at: string;
+            /** Expected Version */
+            expected_version: number;
+            /** Organization Timezone */
+            organization_timezone: string;
+            /** Participants */
+            participants: components["schemas"]["DisplayName"][];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
         };
         /** RequestChanges */
         RequestChanges: {
@@ -615,6 +759,8 @@ export interface components {
              * Format: uuid
              */
             department_id: string;
+            /** Due At */
+            due_at?: string | null;
             /**
              * Id
              * Format: uuid
@@ -734,6 +880,51 @@ export interface components {
          * @enum {string}
          */
         RequestStatus: "DRAFT" | "SUBMITTED" | "TRIAGED" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | "NEEDS_INFO" | "REOPENED" | "CANCELLED" | "MANAGER_REVIEW" | "FINANCE_REVIEW" | "APPROVED" | "COMPLETED" | "REVERSAL_REVIEW" | "REVERSED" | "REJECTED" | "WITHDRAWN";
+        /** RequestSummary */
+        RequestSummary: {
+            /** Amount */
+            amount?: string | null;
+            assigned_to?: components["schemas"]["DisplayName"] | null;
+            /** Available Actions */
+            available_actions: components["schemas"]["ActionCapability"][];
+            /** Blocking */
+            blocking?: components["schemas"]["ActionBlock"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency?: string | null;
+            /** Current Submission Sequence */
+            current_submission_sequence: number | null;
+            department: components["schemas"]["DisplayName"];
+            /** Due At */
+            due_at: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            requester: components["schemas"]["DisplayName"];
+            /** Service Cycle Sequence */
+            service_cycle_sequence: number | null;
+            /** Start Date */
+            start_date?: string | null;
+            status: components["schemas"]["RequestStatus"];
+            /** Title */
+            title: string;
+            type: components["schemas"]["RequestType"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
         /**
          * RequestType
          * @enum {string}
@@ -1120,6 +1311,25 @@ export interface components {
          * @enum {string}
          */
         UserStatus: "active" | "inactive";
+        /** WorkQueue */
+        WorkQueue: {
+            /**
+             * Evaluated At
+             * Format: date-time
+             */
+            evaluated_at: string;
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["RequestSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Organization Timezone */
+            organization_timezone: string;
+            queue: components["schemas"]["QueueKind"];
+        };
         /**
          * WorkScope
          * @enum {string}
@@ -1822,6 +2032,113 @@ export interface operations {
             };
         };
     };
+    get_request_options: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreationOptions"];
+                };
+            };
+            /** @description Verified active identity required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Requester or role restriction */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Organization display context requires validation */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Invalid input or unavailable department */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
     get_request: {
         parameters: {
             query?: never;
@@ -1886,6 +2203,136 @@ export interface operations {
             };
             /** @description Request missing or not visible */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Invalid input or unavailable department */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    get_request_capabilities: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestCapabilities"];
+                };
+            };
+            /** @description Verified active identity required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Requester or role restriction */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Request missing or not visible */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Organization display context requires validation */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2343,6 +2790,115 @@ export interface operations {
                 };
             };
             /** @description Invalid pagination */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    get_work_queue: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                queue: components["schemas"]["QueueKind"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkQueue"];
+                };
+            };
+            /** @description Verified active identity required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Active organization role required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Organization display context requires validation */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Detail */
+                        detail: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Invalid queue or pagination */
             422: {
                 headers: {
                     [name: string]: unknown;

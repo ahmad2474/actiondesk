@@ -385,6 +385,16 @@ def test_approved_milestone3_lazy_capture_preserves_real_approval(world: World) 
     command.check(Config("alembic.ini"))
     with Session(world.engine) as session:
         record = get_request(session, world.owner, request_id)
+    from app.services.capabilities import get_capabilities
+
+    with Session(world.engine) as session:
+        capability = get_capabilities(session, world.owner, request_id)
+        assert {entry.action.value for entry in capability.available_actions} == {
+            "request_reversal"
+        }
+    with world.engine.connect() as connection:
+        assert connection.scalar(text("SELECT count(*) FROM request_submissions")) == 0
+        assert connection.scalar(text("SELECT count(*) FROM request_revisions")) == 0
     original = record.approved_at
     record = world.act(record, world.owner, "request_reversal", intent="withdraw").request
     assert reverse(world, record).approved_at == original
@@ -481,6 +491,16 @@ def test_old_managed_service_lazy_capture_requires_trusted_resolution(
     configure_reopen(world)
     with Session(world.engine) as session:
         record = get_request(session, world.owner, draft.id)
+    from app.services.capabilities import get_capabilities
+
+    with Session(world.engine) as session:
+        capability = get_capabilities(session, world.owner, draft.id)
+        assert ("reopen" in {entry.action.value for entry in capability.available_actions}) == (
+            not corrupt
+        )
+        assert all(entry.resolution_id is None for entry in capability.available_actions)
+    with world.engine.connect() as connection:
+        assert connection.scalar(text("SELECT count(*) FROM service_resolutions")) == 0
     if corrupt:
         with pytest.raises(DomainError) as error:
             world.act(record, world.owner, "reopen")

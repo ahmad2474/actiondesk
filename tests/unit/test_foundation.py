@@ -111,6 +111,9 @@ def test_only_authorized_milestone_routes() -> None:
         "/requests/{request_id}/lifecycle",
         "/requests/{request_id}/transitions",
         "/requests/{request_id}/revisions",
+        "/requests/options",
+        "/requests/{request_id}/capabilities",
+        "/work-queues/{queue}",
     }
     assert set(paths["/requests"]) == {"get", "post"}
     assert set(paths["/requests/{request_id}"]) == {"get"}
