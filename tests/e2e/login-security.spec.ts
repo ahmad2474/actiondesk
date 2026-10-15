@@ -101,18 +101,25 @@ test.describe("hydrated login credential safety", () => {
 });
 
 const synthetic = () => ({ email: `unhydrated-${randomUUID()}@actiondesk.ahmad`, password: randomUUID() });
-async function assertFallback(page: Page, security: ReturnType<typeof watchCredentials>) {
+async function assertFallbackState(page: Page, security: ReturnType<typeof watchCredentials>) {
   await expect(page).toHaveURL("/login?reason=javascript");
   await expect(page.locator("form.login-form").getByRole("alert")).toContainText("Sign-in did not run");
   await expect(page).toHaveTitle("Sign in · ActionDesk");
   expect(security.submissions).toEqual([{ method: "POST", path: "/api/actiondesk/login-unavailable" }]);
   expect((await page.context().cookies()).some(cookie => cookie.name.includes("actiondesk_session"))).toBe(false);
   await security.assertSafe();
-  // Back/forward history contains safe document URLs too.
-  await page.goBack();
+}
+
+async function assertFallback(page: Page, security: ReturnType<typeof watchCredentials>) {
+  await assertFallbackState(page, security);
+  // Revisit both safe document states explicitly. History traversal can race
+  // hydration/popstate restoration of the interrupted pre-hydration document.
+  await page.goto("/login");
+  await expect(page).toHaveURL("/login");
+  await expect(page).toHaveTitle("Sign in · ActionDesk");
   await security.assertSafe();
-  await page.goForward();
-  await security.assertSafe();
+  await page.goto("/login?reason=javascript");
+  await assertFallbackState(page, security);
 }
 
 test.describe("JavaScript unavailable", () => {
