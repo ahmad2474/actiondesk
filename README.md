@@ -2,11 +2,11 @@
 
 AI-assisted internal operations platform. Phase 0 provides the skeleton and local infrastructure. Phase 1 milestones 1 and 2 provide tenant-aware creation/reads and PostgreSQL opaque-cookie authentication. **Milestone 3** adds deterministic manual service, expense and leave transitions, durable approval evidence, participant visibility and scoped work queues. **Milestone 4** adds audited expense/leave correction and current-policy resubmission with full reapproval. **Milestone 5** adds independent reversal review, linked correction drafts and configured service reopening. **Milestone 6A** adds the responsive design system, real sign-in and owned-request read views, plus isolated synthetic workflow previews. Workflow mutations in the web UI remain deferred to 6B.
 
-**Current status:** Phase 0 and milestones 1–6A, including the security maintenance pass, are owner-confirmed complete, committed/pushed and CI green. Milestone 6B Phase 1 adds backend-authoritative capability/scoped read models only; see [the checkpoint](docs/PHASE_1_MILESTONE_6B_READ_MODELS.md). Full live mutation UI wiring remains a subsequent step. Current changes are uncommitted.
+**Current status:** Phase 0, milestones 1–6A, security maintenance and Milestone 6B Phase 1 are owner-confirmed complete, committed/pushed and CI green. Milestone 6B Phase 2 integrates the authoritative reads into the frontend; see [the read foundation](docs/PHASE_1_MILESTONE_6B_READ_MODELS.md) and [the frontend checkpoint](docs/PHASE_1_MILESTONE_6B_FRONTEND_READS.md). Workflow controls remain non-mutating. Phase 2 changes are uncommitted.
 
 ## Specification and decisions
 
-[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Current authorization stops at Milestone 6B Phase 1; [the frontend ADR](docs/adr/0006-application-shell.md) records its approved scope and dependencies.
+[PRD v1.1](docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf) is authoritative; [v1](docs/ActionDesk_PRD_Technical_Architecture_v1.pdf) is background. [AGENTS.md](AGENTS.md), [Phase 0 plan](docs/PHASE_0_PLAN.md), and [foundation ADR](docs/adr/0001-foundation.md) describe engineering constraints and approved decisions. Current authorization stops at Milestone 6B Phase 2 frontend reads; [the frontend ADR](docs/adr/0006-application-shell.md) records the design and dependencies.
 
 ## Local setup
 

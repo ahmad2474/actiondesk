@@ -1,4 +1,4 @@
-import { allowedRead, sessionCookies, upstream } from "@/lib/transport";
+import { allowedRead, readTarget, sessionCookies, upstream } from "@/lib/transport";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ path: string[] }> };
 async function forward(request: Request, context: Context): Promise<Response> {
@@ -8,13 +8,7 @@ async function forward(request: Request, context: Context): Promise<Response> {
     return Response.json({ title: "Not available", detail: "This interface supports authentication and read-only requests." }, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
   const source = new URL(request.url);
-  const target = new URL(`${upstream()}/${path}`);
-  // No scopes can expand the owned-request list through this 6A adapter.
-  if (path === "requests") target.searchParams.set("scope", "mine");
-  for (const name of ["limit", "offset"]) {
-    const value = source.searchParams.get(name);
-    if (value !== null) target.searchParams.set(name, value);
-  }
+  const target = mutation ? new URL(`${upstream()}/${path}`) : readTarget(path, source.searchParams);
   const headers = new Headers({ Accept: "application/json" });
   for (const name of ["origin", "content-type", "x-csrf-token"]) {
     const value = request.headers.get(name);

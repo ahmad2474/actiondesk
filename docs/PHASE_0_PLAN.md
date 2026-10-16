@@ -159,3 +159,7 @@ The owner confirms Phase 0 and milestones 1–4 complete, committed/pushed and C
 ## Current authorization update (milestone 6A)
 
 The owner confirms milestones 1–5 complete, pushed and CI green. Milestone 6A authorizes the approved custom light design system, role-union responsive shell, existing real auth and owned-request read data, explicitly fictional workflow previews, and accessibility/screenshot checks. No new backend capability/directory contract, web workflow mutation, notification/AI, deployment, commit/push or 6B work is authorized. See ADR 0006 and PHASE_1_MILESTONE_6A.md.
+
+## Current authorization update (milestone 6B Phase 2)
+
+The owner confirms 6A, security maintenance and 6B Phase 1 complete, committed/pushed and CI green. Phase 2 now authorizes frontend read integration: the fixed read adapter, request/detail capabilities, scoped choices, authoritative work queues and disabled action availability. It does not authorize live workflow mutations, changed authorization, dependencies, AI, notifications, attachments, analytics, deployment, commits/pushes or 6B Phase 3. See PHASE_1_MILESTONE_6B_FRONTEND_READS.md. Earlier milestone notes are historical boundaries.

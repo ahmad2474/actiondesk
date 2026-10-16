@@ -1259,6 +1259,42 @@
   align-items: flex-end;
   justify-content: center;
 }
+.root :global(.live-queue) {
+  margin-top: 32px;
+}
+.root :global(.live-queue-card) {
+  align-items: flex-start;
+  gap: 20px;
+}
+.root :global(.queue-content) {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.root :global(.action-availability) {
+  margin-top: 16px;
+}
+.root :global(.action-availability .button-group) {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.root :global(.action-compact .button) {
+  font-size: 12px;
+  padding: 6px 10px;
+  min-height: 36px;
+}
+.root :global(.read-choices) {
+  margin-top: 24px;
+}
+.root :global(.read-choices select),.root :global(.creation-options select) {
+  width: 100%;
+  min-height: 44px;
+  margin: 8px 0;
+}
+.root :global(.choice-labels) {
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
 .root :global(.queue-money) {
   font-size: 18px;
   font-weight: 650;

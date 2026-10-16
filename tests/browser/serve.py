@@ -3,6 +3,7 @@
 Run in a one-off Compose API container; only the generated test database is dropped.
 """
 
+import asyncio
 import os
 import secrets
 from collections.abc import AsyncIterator
@@ -12,9 +13,10 @@ from uuid import uuid4
 import uvicorn
 from alembic import command
 from alembic.config import Config
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi import Request as HTTPRequest
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, JsonValue
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
@@ -28,6 +30,12 @@ from app.domain.types import Role
 from app.main import app
 from app.services.auth import replace_password
 from app.services.passwords import password_hasher
+
+
+class ReadFixture(BaseModel):
+    status: int = Field(default=200, ge=200, le=599)
+    body: JsonValue = None
+    hold: bool = False
 
 
 def main() -> None:
@@ -68,6 +76,30 @@ def main() -> None:
                 RoleAssignment(organization_id=user.organization_id, user_id=user.id, role=role)
             )
     faults: dict[str, int | str] = {}
+    # Test-only response sequences for deterministic read composition and loading checks.
+    # Real authentication and session restoration still use the unchanged application.
+    read_fixtures: dict[str, list[ReadFixture]] = {}
+    read_gate = asyncio.Event()
+
+    @app.post("/__browser/reads")
+    async def configure_reads(payload: dict[str, list[ReadFixture]]) -> dict[str, bool]:
+        if any(
+            not (
+                path.split("?")[0] == "/requests"
+                or path.startswith(("/requests/", "/work-queues/"))
+            )
+            for path in payload
+        ):
+            raise HTTPException(422, "Only workflow read fixtures are supported.")
+        read_fixtures.clear()
+        read_fixtures.update(payload)
+        read_gate.clear()
+        return {"ok": True}
+
+    @app.post("/__browser/reads/release")
+    async def release_reads() -> dict[str, bool]:
+        read_gate.set()
+        return {"ok": True}
 
     @app.get("/__browser/credentials")
     def credentials() -> dict[str, str]:
@@ -78,8 +110,10 @@ def main() -> None:
         return {"email": "manager@actiondesk.ahmad", "password": manager_password}
 
     @app.post("/__browser/reset")
-    def reset() -> dict[str, bool]:
+    async def reset() -> dict[str, bool]:
         faults.clear()
+        read_fixtures.clear()
+        read_gate.set()
         with Session(engine) as session, session.begin():
             session.execute(text("DELETE FROM auth_sessions"))
         return {"ok": True}
@@ -122,6 +156,17 @@ def main() -> None:
 
         from starlette.responses import Response
 
+        query_path = request.url.path + (f"?{request.url.query}" if request.url.query else "")
+        fixtures = read_fixtures.get(query_path, read_fixtures.get(request.url.path))
+        if request.method == "GET" and fixtures:
+            selected = fixtures.pop(0) if len(fixtures) > 1 else fixtures[0]
+            if selected.hold:
+                await read_gate.wait()
+            return JSONResponse(
+                selected.body,
+                status_code=selected.status,
+                headers={"Cache-Control": "no-store", "X-Request-ID": "browser-read-fixture"},
+            )
         if faults.get("status") and (
             request.url.path == "/auth/login"
             if faults.get("target") == "login"

@@ -1,5 +1,9 @@
 # Milestone 6B Phase 1: capability and read-model foundation
 
+Owner-confirmed complete, committed/pushed and CI green. The scope and validation
+below record that checkpoint. Subsequently authorized frontend consumption is
+tracked in [the Phase 2 checkpoint](PHASE_1_MILESTONE_6B_FRONTEND_READS.md).
+
 Scope: explicit owner authorization after completed, committed/CI-green 6A and
 security maintenance. This checkpoint implements backend-authoritative read
 contracts only. No UI redesign, workflow buttons, new mutations, dependencies,

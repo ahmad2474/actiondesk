@@ -58,3 +58,10 @@ Vary: Cookie while preserving existing Origin variation. The established fronten
 shell and its owned-read/auth adapter remain unchanged in this backend foundation
 step. Extending the adapter, composing these reads and wiring typed forms/actions
 are subsequent 6B work, not authorization inferred from status or roles.
+
+The owner subsequently confirmed Phase 1 committed/pushed and CI green and
+authorized Phase 2 frontend read integration. Both frontend adapters now share
+the fixed read allowlist; server components compose version/evidence-matched
+detail and capabilities and render disabled action availability. No mutation
+adapter, new authorization rule or dependency is added. See
+[the Phase 2 checkpoint](../PHASE_1_MILESTONE_6B_FRONTEND_READS.md).

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import type { Auth, RequestPage } from "../../apps/web/lib/api-types";
 const fixture = process.env.BROWSER_API_URL;
 test.describe("real PostgreSQL session and owned reads", () => {
   test.skip(!fixture, "Set BROWSER_API_URL to the disposable browser API; never use development credentials.");
@@ -54,7 +55,11 @@ test.describe("real PostgreSQL session and owned reads", () => {
     await login(page);
     await page.goto("/requests");
     const records = await page.request.get("/api/actiondesk/requests?limit=20");
-    const first = (await records.json()).items[0];
+    const owned: RequestPage = await records.json();
+    // Department managers may legitimately read service participants in 6B.
+    // Choose a sensitive fixture without a nomination, then verify backend denial.
+    const first = owned.items.find(record => record.type !== "service");
+    if (!first) throw new Error("Expected a private expense/leave fixture");
     const next = await request.get(`${fixture}/__browser/credentials/manager`);
     const response = await page.request.post("/api/actiondesk/auth/login", {
       data: await next.json(), headers: { Origin: "http://127.0.0.1:3100" },
@@ -63,6 +68,11 @@ test.describe("real PostgreSQL session and owned reads", () => {
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
     await expect(page.getByText("No request was created", { exact: true })).toHaveCount(0);
     await expect(page).toHaveURL("/");
+    const auth: Auth = await (await page.request.get("/api/actiondesk/auth/me")).json();
+    await expect(page.getByRole("button", { name: "Account menu" })).toContainText(auth.user.name);
+    const currentOwned: RequestPage = await (await page.request.get("/api/actiondesk/requests?limit=20")).json();
+    expect(currentOwned.items.every(record => record.created_by === auth.user.id)).toBe(true);
+    expect((await page.request.get(`/api/actiondesk/requests/${first.id}`)).status()).toBe(404);
     await page.goto(`/requests/${first.id}`);
     await expect(page.locator(".error-state")).toContainText("Request unavailable");
     await expect(page.getByRole("heading", { name: first.title, exact: true })).toHaveCount(0);

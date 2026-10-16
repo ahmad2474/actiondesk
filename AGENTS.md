@@ -4,7 +4,7 @@
 
 - Authoritative specification: `docs/ActionDesk_PRD_Technical_Architecture_v1_1.pdf`, especially Sections 16.1-16.7. Use `docs/ActionDesk_PRD_Technical_Architecture_v1.pdf` only as non-conflicting background.
 - Follow explicit user instructions. Do not infer policy from incomplete PDF extraction; stop and report extraction failure.
-- Phase 0 and Phase 1 milestones 1–6A, including security maintenance, are owner-confirmed complete, committed/pushed and CI green. Milestone 6B Phase 1 is explicitly authorized: backend-authoritative read-only capabilities, scoped display/choice data, enriched work queues and generated contracts. Reuse mutation authorization; keep Principal/auth/CSRF/session and existing workflow policies unchanged. No frontend mutation buttons, AI, notifications, attachments, analytics, deployment changes, commits or pushes are authorized in this step.
+- Phase 0 and Phase 1 milestones 1–6A, security maintenance, and Milestone 6B Phase 1 are owner-confirmed complete, committed/pushed and CI green. Milestone 6B Phase 2 is explicitly authorized: frontend read integration of capabilities, scoped choices and work queues. Render only backend-provided action availability as non-mutating controls. Keep Principal/auth/CSRF/session and workflow authorization unchanged. No live workflow mutations, AI, notifications, attachments, analytics, deployment changes, commits or pushes are authorized in this step.
 - `docs/PHASE_0_PLAN.md` records proposed implementation choices and open decisions. Proposals are not approved requirements. When approval arrives, update the recorded status and decisions.
 
 ## Architecture and scope
@@ -101,7 +101,7 @@
 
 - Before changing code, identify the authorized phase and relevant PRD sections. Record unresolved policy questions rather than inventing rules.
 - Keep changes focused, reviewable, and accompanied by relevant documentation and validation. Do not broaden scope or install speculative future dependencies.
-- Stop at Milestone 6B Phase 1 read-model foundation. Further workflow UI wiring requires a subsequent review checkpoint. Report actual validation evidence and deviations before declaring completion.
+- Stop at Milestone 6B Phase 2 frontend read integration. Phase 3/live mutation wiring requires a subsequent review checkpoint. Report actual validation evidence and deviations before declaring completion.
 
 ## Approved milestone 3 policy
 
@@ -156,3 +156,11 @@
 - Display names/choices stay tenant- and participant-scoped. No global user directory, hidden candidate/policy disclosure or admin-only sensitive-content access.
 - Read models do not write or lazily capture business evidence. Preserve immutable approvals, revision/correction, reversal, service-cycle, idempotency and database invariants.
 - No UI redesign, mutation-button wiring, dependencies, migrations, AI, notifications, uploads, analytics, deployment, commit or push. See docs/adr/0007-workflow-capability-reads.md and docs/PHASE_1_MILESTONE_6B_READ_MODELS.md.
+
+## Approved milestone 6B Phase 2 boundary
+
+- Extend the fixed upstream read allowlist for capabilities, creation options and the four work queues. Creation/transition POSTs remain blocked; auth behavior stays unchanged.
+- Integrate detail, My Requests, Approvals/reversals, Service Work, Finance Processing and creation options with generated contract types. Role-union navigation remains orientation only; action rendering uses supplied capabilities, never role/status inference.
+- Match detail/request versions and current action evidence IDs. Make at most one fresh pair of reads on mismatch, suppress incompatible names/choices/actions and offer refresh if still stale. Access-denied companion reads hide detail; other failures may preserve an explicitly partial read-only view.
+- Names and choices come only from backend-authorized read models. No directory, hidden candidate/policy disclosure, cross-tenant content, business writes or new dependencies. Maintain responsive/accessibility checks through 320px.
+- No commits/pushes or 6B Phase 3/live mutation wiring. See docs/PHASE_1_MILESTONE_6B_FRONTEND_READS.md.

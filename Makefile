@@ -42,6 +42,7 @@ typecheck:
 test:
 	uv run --frozen pytest tests/unit
 	node --test tests/contracts.test.mjs
+	npm run test:frontend
 
 test-integration:
 	$(COMPOSE) --profile checks run --rm checks

@@ -6,12 +6,13 @@
     "packages/contracts"
   ],
   "scripts": {
-    "lint": "npm run lint --workspace @actiondesk/web && eslint --config apps/web/eslint.config.mjs playwright.config.ts tests/e2e scripts/contracts.mjs",
+    "lint": "npm run lint --workspace @actiondesk/web && eslint --config apps/web/eslint.config.mjs playwright.config.ts tests/e2e tests/frontend scripts/contracts.mjs",
     "typecheck": "npm run typecheck --workspace @actiondesk/contracts && npm run typecheck --workspace @actiondesk/web && tsc --noEmit -p tsconfig.checks.json",
     "build": "npm run build --workspace @actiondesk/web",
     "contracts": "node scripts/contracts.mjs",
     "contracts:check": "node scripts/contracts.mjs --check",
-    "test:web": "playwright test"
+    "test:web": "playwright test",
+    "test:frontend": "node --experimental-strip-types --test tests/frontend/*.test.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
